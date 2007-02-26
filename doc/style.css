@@ -1,0 +1,58 @@
+/* A style for ocamldoc. Daniel C. Buenzli */
+
+a:visited { color : #0000AA ; text-decoration : none; }
+a:link {color : #0000AA ; text-decoration : none;}
+a:hover {color : #0000AA ; text-decoration : underline;}
+.keyword { font-weight : bold  ;  /* color : #6E8B3D */ }
+.keywordsign { color : #000000 } 
+.superscript { font-size : 10 }
+.subscript { font-size : 10 }
+.comment { color : Green }
+.constructor { color : #191970 }
+.type { color : #2C3555 }
+.string { color : #8C4F4F }
+.warning { color : Red ; font-weight : bold }
+.info { margin-left : 3em; margin-right : 3em }
+.code { color : #162F61 ; }
+
+body { max-width : 80ex;
+       min-width : 40ex; 
+       margin: 1.5em 7% 2em 7%;
+       background-color: white; 
+       font-family: sans-serif; font-size : 10pt}
+
+table { font-size : 10pt; font-family: sans-serif; }
+
+h1, h2, h3, h4, h5, h6, h7, h8, h9 
+{ font-weight : bold; 
+  color : black;
+  font-family : sans-serif;
+  text-align : left; 
+  padding-top : 3px;
+  padding-left : 5px;
+  margin-left : -5px;
+  margin-bottom : -2px;
+  border-top : solid;
+  border-width : 1px;
+}
+h1 { font-size : 14pt}
+h2 { font-size : 12pt}
+h3 { font-size : 10pt}
+h4, h5, h6, h7, h8, h9 
+{ font-size : 10pt; padding-top:0px; border-style:none  }
+
+
+.navbar { margin-bottom : 10px; }
+
+
+
+.typetable { border-style : hidden }
+.indextable { border-style : hidden }
+.paramstable { border-style : hidden ; padding: 5pt 5pt}
+
+hr { border-style : none; border-width : 0 0 1px 0 }
+tr { background-color : White }
+td.typefieldcomment { background-color : #FFFFFF }
+pre { margin-bottom: 4px }
+div.sig_block {margin-left: 2em}
+
