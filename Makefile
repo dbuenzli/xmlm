@@ -26,7 +26,8 @@ $(exec).opt: $(sources:.ml=.cmx)
 
 install:
 	$(MKDIR) -p $(INSTALLDIR)
-	$(CP) $(lib).mli $(lib).ml $(lib).cmo $(lib).cmx $(lib).o $(INSTALLDIR)
+	$(CP) $(lib).mli $(lib).ml $(lib).cmi $(lib).cmo $(lib).cmx \
+	$(lib).o $(INSTALLDIR)/
 
 doc: $(lib).cmi
 	$(OCAMLDOC) -I . -html -colorize-code -d $(HTMLDOCDIR) $(lib).mli
