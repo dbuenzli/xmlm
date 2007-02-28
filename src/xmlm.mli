@@ -104,8 +104,8 @@ val input : ?enc:encoding option -> ?strip:bool ->
        {{:http://www.w3.org/TR/REC-xml/#NT-prolog}prolog} was parsed.
        Default does nothing.}
     {- [prune] is called whenever a new element starts. If it returns [true],
-       no callbacks are invoked for the element and its children. 
-       Default returns [false].}
+       no callbacks are invoked for the element and its children, 
+       {{:#input} details}. Default returns [false].}
     {- [d], is called on character data, the return value is 
        the accumulator for the next callback. Default returns the accumulator.}
     {- [s], is called whenever an element starts, the return value is
@@ -139,8 +139,8 @@ val input_tree : ?enc:encoding option -> ?strip:bool ->
         {{:http://www.w3.org/TR/REC-xml/#NT-prolog}prolog} was parsed.
         Default does nothing.}
      {- [prune] is called whenever a new element starts. If it returns [true],
-        no callbacks are invoked for the element and its children. 
-        Default returns [false].}
+        no callbacks are invoked for the element and its children, 
+       {{:#input} details}. Default returns [false].}
      {- [d], is called on character data, if [None] is returned, the given 
         character data is not included in the resulting tree. 
         Default returns the argument.}
