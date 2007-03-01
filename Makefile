@@ -1,43 +1,51 @@
 PROJECTNAME = xmlm
-VERSION = 0.9.0
+VERSION = 0.9.1
 COPYRIGHTYEAR = 2007
 
 # Compiler options
-OCAMLCFLAGS = -dtypes -g -I src
+OCAMLCFLAGS = -dtypes -I src
 OCAMLOPTFLAGS = -I src
 
-INSTALLDIR = $(shell $(OCAMLC) -where)/xmlm
-HTMLDOCDIR = doc
+INSTALLDIR = $(shell $(OCAMLC) -where)/$(PROJECTNAME)
+DOCDIR = doc
 
-# Source files
-lib = src/xmlm
-exec = test/xmltrip
-sources = $(lib).ml $(exec).ml
+# Library
+libsources = src/xmlm.ml
 
-default: $(lib).cmi $(lib).cmo $(lib).cmx
+# Test
+testsources = test/xmltrip.ml
+testname = test/xmltrip
 
-test: $(exec) $(exec).opt
+default: lib test
 
-$(exec): $(sources:.ml=.cmo)
+lib: $(libsources:.ml=.cmi) $(libsources:.ml=.cmo) $(libsources:.ml=.cmx)
+
+test: $(testname) $(testname).opt
+
+$(testname): $(libsources:.ml=.cmo) $(testsources:.ml=.cmo)
 	$(OCAMLC) $(OCAMLCFLAGS) -o $@ $+
 
-$(exec).opt: $(sources:.ml=.cmx)
+$(testname).opt: $(libsources:.ml=.cmx) $(testsources:.ml=.cmx)
 	$(OCAMLOPT) $(OCAMLOPTFLAGS) -o $@ $+
 
-install:
+install: lib
 	$(MKDIR) -p $(INSTALLDIR)
-	$(CP) $(lib).mli $(lib).ml $(lib).cmi $(lib).cmo $(lib).cmx \
-	$(lib).o $(INSTALLDIR)/
+	$(CP) $(libsources) $(libsources:.ml=.mli) $(libsources:.ml=.cmi) \
+	$(libsources:.ml=.cmx) $(libsources:.ml=.o) $(INSTALLDIR)
 
-doc: $(lib).cmi
-	$(OCAMLDOC) -I . -html -colorize-code -d $(HTMLDOCDIR) $(lib).mli
+doc: $(libsources:.ml=.cmi)
+	$(OCAMLDOC) -I . -html -colorize-code -d $(DOCDIR) \
+	$(libsources:.ml=.mli)
 
 clean:
-	$(RM) -f $(sources:.ml=.cmi) $(sources:.ml=.cmo) $(sources:.ml=.cmx) \
-	$(sources:.ml=.o) $(sources:.ml=.annot) $(exec) $(exec).opt
+	$(RM) -f $(libsources:.ml=.cmo) $(libsources:.ml=.cmx) \
+	$(libsources:.ml=.cmi) $(libsources:.ml=.o) $(libsources:.ml=.annot) \
+	$(testsources:.ml=.cmo) $(testsources:.ml=.cmx) \
+	$(testsources:.ml=.cmi) $(testsources:.ml=.annot) $(testsources:.ml=.o)\
+	$(testname) $(testname).opt
 
 clean-all: clean
-	$(RM) -f $(HTMLDOCDIR)/*.html
+	$(RM) -f $(DOCDIR)/*.html
 
 depend:
 	$(OCAMLDEP) $(sources:.ml=.mli) $(sources) > .depend
@@ -68,7 +76,7 @@ distrib:
 	$(CD) $(ROOTDIR)/.. && $(TAR) -cvjf $(DIRNAME).tbz $(DIRNAME)
 	$(RM) -r $(ROOTDIR)
 
-.PHONY : default test install doc clean clean-all depend distrib
+.PHONY : default lib test install doc clean clean-all depend distrib
 
 # Ocaml tools
 OCAMLBINPREFIX =
