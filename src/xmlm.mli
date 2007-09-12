@@ -33,7 +33,6 @@
     1998. *)
 
 (** {1 Basic types} *)
-
 (** The type for encodings. *)
 type encoding = 
   | UTF_8 
@@ -236,7 +235,6 @@ type 'a cursor
     tree}.  In what follows we {e identify the cursor with the subtree it
     points on}. The following concepts are defined with respect to a
     cursor.
-
     {ul 
     {- The {e parent} denotes the unique element in which the cursor
        is contained. } 
@@ -317,7 +315,7 @@ val insert_after : 'a cursor -> 'a tree -> 'a cursor
     you give or receive {e during} input and output must not
     be modified.
     
-    {4:input Input}
+    {2:input Input}
     {ul    
     {- Encoding. The parser supports ASCII, US-ASCII, 
     {{:http://www.faqs.org/rfcs/rfc3629.html} UTF-8},
@@ -394,7 +392,7 @@ val insert_after : 'a cursor -> 'a tree -> 'a cursor
     {- Non validating.}
     }
     
-    {4:output Output}
+    {2:output Output}
     {ul
     {- Encoding. Outputs 
         only {{:http://www.faqs.org/rfcs/rfc3629.html} UTF-8}
@@ -421,7 +419,7 @@ val insert_after : 'a cursor -> 'a tree -> 'a cursor
       a non well-formed document because of the space character.}
     {- Tail recursive.}}
 
-    {4 Tips} 
+    {2 Tips} 
     {ul 
     {- The best options to do an input/output round trip
        and preserve as much information as possible is to 
@@ -434,17 +432,19 @@ val insert_after : 'a cursor -> 'a tree -> 'a cursor
 
 (** {1:ex Examples} 
 
-    {4:exseq Sequential processing}    
+    {2:exseq Sequential processing}    
 
     This example shows how to process documents without building an
     in-memory representation. The function [prune_in] prunes 
     a document from elements belonging to a [prune_list] and outputs
-    the result.  The tree is
-    pruned with the [prune] callback which takes a tag and returns
-    [true] if the tag name is in the prune list. This disables
-    callbacks for the element and its descendents. The other callbacks [d], [s] 
-    and [e] just signal the corresponding event --- character data, start of an 
-    element, end of an element --- on the output abstraction.
+    the result.  
+
+    The tree is pruned with the [prune] callback which takes a tag and
+    returns [true] if the tag name is in the prune list. This disables
+    callbacks for the element and its descendents. The other callbacks
+    [d], [s] and [e] just signal the corresponding event --- character
+    data, start of an element, end of an element --- on the output
+    abstraction.
 {[let prune_in prune_list ic oc = 
   let i = Xmlm.input_of_channel ic in
   let o = Xmlm.output_of_channel oc in
@@ -456,17 +456,16 @@ val insert_after : 'a cursor -> 'a tree -> 'a cursor
   Xmlm.input ~prune ~prolog ~d ~s ~e () i;
   Xmlm.output_finish o]}
 
-    {4:exintree Custom tree input} 
+    {2:exintree Custom tree input} 
     
     To build a tree you can directly use {!input_tree}. However you may
     need to interface with a different tree data structure. This can 
     be done with {!input}. Assume your trees are defined as 
     follows.
-{[type t = El of Xmlm.tag * t list | D of string ]}
-
+    {[type t = El of Xmlm.tag * t list | D of string ]}
     The accumulator ([path]) given to {!input} is a stack of lists of
     type [t] representing ancestor elements whose parsing needs to be
-    finished --- more children need to be parsed. The top of the stack
+    finished, more children need to be parsed. The top of the stack
     holds the children of the element being parsed. When a new element
     starts, [s] is invoked, it pushes an empty list of children on the
     stack. When an element ends, [e] is invoked, it constructs the
@@ -495,19 +494,29 @@ val insert_after : 'a cursor -> 'a tree -> 'a cursor
   | _ -> assert false (* cannot happen (no pruning) *)
 ]}
 
-  {4:exouttree Custom tree output} 
+  {2:exouttree Custom tree output} 
 
-  This example shows how to output the tree representation of the last
-  section. Care must be taken to make the function tail recursive. The
-  internal function [aux] acts on a stack of lists of type [t]
-  ([path]) representing ancestor elements whose output needs to be finished
-  --- more children need to be output. When an element is
-  deconstructed a start element is signaled and its children are
-  pushed on the stack. When the list on top of the stack becomes
-  empty, all the children of the element were output and we can signal
-  the end of an element.  Character data is signaled with a [`D] and
-  removed from the list of children on top of the stack. [aux] stops
-  when the last list of children becomes empty.
+  We show how to output the tree representation [t] of the last
+  section. Care must be taken to make the function tail recursive.
+
+  The internal function [aux] matches on a stack of lists of type [t]
+  representing ancestor elements whose output needs to be finished,
+  more children need to be output.
+  {ol 
+  {- If the list on the top of the stack is not empty we deconstruct it.
+    {ol
+    {- If the head is an element [El], it is signalled with a [`S],
+       removed from the list, and we push its children of on the
+       stack. These need to be output now, before the rest.}
+    {- If the head is character data [D], it is signaled with a [`D]
+       and removed from the list of children on top of the stack.}}}
+  {- If the list on the top of the stack is empty and the stack is empty,
+     we have output everything. We can stop.}
+  {- If the list on the top of the stack is empty but the stack is not,
+     we finished to output the children of an element. 
+     Thus we signal the end of an element with an [`E] and pop the stack.}}
+
+ We start [aux] with the root element on the stack. 
 {[let out_tree oc t = 
   let o = Xmlm.output_of_channel oc in 
   let rec aux o = function

@@ -4,8 +4,8 @@ Xmlm - Sequential XML input/output and persistent cursor for OCaml
 ===============================================================================
 
 Xmlm is an OCaml module providing sequential XML input/output and a
-persistent cursor. It aims at making non valid XML processing robust
-and painless.
+persistent cursor. It aims at making non valid (but well-formed) XML 
+processing robust and painless.
 
 The sequential interface can be used to process documents without
 building an in-memory representation. It also lets the programmer
