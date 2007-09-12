@@ -3,8 +3,8 @@ VERSION = 0.9.1
 COPYRIGHTYEAR = 2007
 
 # Compiler options
-OCAMLCFLAGS = -dtypes -I src
-OCAMLOPTFLAGS = -I src
+OCAMLCFLAGS = -dtypes -I src -I test
+OCAMLOPTFLAGS = -I src -I test
 
 INSTALLDIR = $(shell $(OCAMLC) -where)/$(PROJECTNAME)
 DOCDIR = doc
@@ -13,7 +13,7 @@ DOCDIR = doc
 libsources = src/xmlm.ml
 
 # Test
-testsources = test/xmltrip.ml
+testsources = test/xhtml.ml test/xmltrip.ml
 testname = test/xmltrip
 
 default: lib test

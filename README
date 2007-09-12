@@ -51,3 +51,8 @@ be built with :
 xmltrip reads xml files and outputs them back in various ways. It is
 usefull to understand how Xmlm handles documents. xmltrip -help has more 
 information.
+
+If you need to parse XHTML, there is a file named xhtml.ml in the
+test/ directory. It contains a caml list coupling each XHTML character
+entity with its corresponding UTF-8 encoded character string. You can
+use it to to program a suitable entity callback.

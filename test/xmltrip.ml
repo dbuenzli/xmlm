@@ -83,9 +83,16 @@ let with_outf f ic outf =
     apply (f ic) oc ~finally:close oc
   with
   | Sys_error e -> pr_err (str " %s" e)
+
+let entity_fun ename xhtml = 
+  if not xhtml then (if ename then fun x -> Some x else fun x -> None) else
+  let h = Hashtbl.create 270 in
+  List.iter (fun (e, ustr) -> Hashtbl.add h e ustr) Xhtml.entities;
+  if ename then (fun x -> try Some (Hashtbl.find h x) with Not_found -> Some x)
+  else (fun x -> try Some (Hashtbl.find h x) with Not_found -> None)
         
-let process tree enc strip ename parse_only outline indent suffix files = 
-  let entity = if ename then fun x -> Some x else fun x -> None in 
+let process tree enc strip ename xhtml parse_only outline indent suffix files = 
+  let entity = entity_fun ename xhtml in
   let f = 
     if parse_only then 
       fun inf -> with_inf (xml_parse tree enc strip entity) inf ()
@@ -120,6 +127,7 @@ let main () =
   let encoding = ref "" in
   let strip = ref false in
   let ename = ref false in
+  let xhtml = ref false in
   let parse_only = ref false in
   let outline = ref false in
   let indent = ref false in
@@ -136,6 +144,8 @@ let main () =
     "strip and collapse white space in character data.";
     "-ename", Arg.Set ename,
     "replace unknown entity references by their name (otherwise fails).";
+    "-xhtml", Arg.Set xhtml,
+    "resolve XHTML character entities.";
     "-p", Arg.Set parse_only, 
     "parse only, no output.";
     "-ot", Arg.Set outline, 
@@ -149,7 +159,8 @@ let main () =
   let files = match (List.rev !files) with [] -> ["" (* stdin *) ] | l -> l in
   let enc = encoding_of_str !encoding in
   let indent = if !indent then Some 2 else None in
-  process !tree enc !strip !ename !parse_only !outline indent !suffix files
+  process !tree enc !strip !ename !xhtml !parse_only !outline indent !suffix 
+    files
 
 let () = main ()
 
