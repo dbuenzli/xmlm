@@ -21,8 +21,6 @@
     Consult the {{:#io}features and limitations} of the 
     input/output functions and {{:#ex}examples} of use.
 
-    {e Version %%VERSION%% {{:mailto:daniel.c.buenzl i\@gmail.com}contact}}.
-
     {b References.}
 
     G. Huet. {e {{:http://dx.doi.org/10.1017/S0956796897002864}The Zipper}. 
@@ -30,9 +28,11 @@
 
     Tim Bray. 
     {e {{:http://www.xml.com/axml/axml.html}The annotated XML Specification}}, 
-    1998. *)
+    1998. 
 
-(** {1 Basic types} *)
+    {b Version} %%VERSION%% daniel.c.buenzl i\@gmail.com
+    {1 Basic types} *)
+
 (** The type for encodings. *)
 type encoding = 
   | UTF_8 
