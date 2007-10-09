@@ -19,8 +19,8 @@ are persistent (non destructive).
 To facilitate direct integration into projects, Xmlm is made of a
 single module and distributed under a BSD license.
 
-Project home page <http://code.google.com/p/xmlm>
-Contact <daniel.c.buenzli@gmail.com>
+Project home page <http://erratique.ch/software/xmlm>
+Contact <daniel.buenzli@erratique.ch>
 
 Installation
 ------------
