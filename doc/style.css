@@ -23,7 +23,7 @@ h1, h2, h3, h4, h5, h6, h7, h8, h9 { padding: 1ex 0em 0em 0em;
                                      font-weight : bold; 
                                      font-family : sans-serif;
 	                             text-align: left;
-                                     border-top-style : solid;
+                                     border-top-style : dotted;
                                      border-width : thin; }
 h1 { font-size : 140%}
 h2 { font-size : 120%; border-top-style : none; margin: 1ex 0em 0em 0em }
