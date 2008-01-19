@@ -10,11 +10,15 @@ let apply f x ~finally y =
   let result = try f x with exn -> finally y; raise exn in
   finally y;
   result
-        
+
+let fail ((l, c), e) = failwith (str "%d:%d: %s" l c (Xmlm.error_message e))
+
 let xml_parse tree enc strip entity ic () =                    (* parse only *)
   let i = Xmlm.input_of_channel ic in
   if tree then ignore (Xmlm.input_tree ~enc ~strip ~entity () i) else
-  Xmlm.input ~enc ~strip ~entity () i
+  match Xmlm.input ~enc ~strip ~entity () i with
+  | `Value () -> ()
+  | `Error e -> fail e
   
 let xml_outline tree enc strip entity ic oc =               (* ascii outline *)
   let pr s = Printf.fprintf oc s in
@@ -63,8 +67,9 @@ let xml_xml indent tree enc strip entity ic oc =                (* xml trip *)
     let d data _ = Xmlm.output_signal o (`D data) in 
     let s tag _ = Xmlm.output_signal o (`S tag) in
     let e _ _ = Xmlm.output_signal o `E in
-    Xmlm.input ~enc ~strip ~entity ~prolog ~d ~s ~e () i;
-    Xmlm.output_finish ~nl o
+    match Xmlm.input ~enc ~strip ~entity ~prolog ~d ~s ~e () i with
+    | `Value () -> Xmlm.output_finish ~nl o
+    | `Error e -> fail e
 
 let with_inf f inf v = 
   try
@@ -73,8 +78,7 @@ let with_inf f inf v =
     apply (f ic) v ~finally:close ic
   with
   | Sys_error e -> pr_err (str " %s" e)
-  | Xmlm.Error ((l,c), e) -> 
-      pr_err (str "%s:%d:%d: %s" inf l c (Xmlm.error_message e))
+  | Failure e -> pr_err (str "%s:%s" inf e)
 	
 let with_outf f ic outf = 
   try 

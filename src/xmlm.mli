@@ -63,6 +63,26 @@ type 'a tree = [ `El of 'a * tag * 'a tree list | `D of string ]
 (** The type for trees. Either an element ([`El]) or character data ([`D]). 
     The type ['a] is for user labels. *) 
 
+(** The type for input errors. *)
+type error = 
+  | E_max_buffer_size (** Maximal buffer size exceeded 
+			  ([Sys.max_string_length]). *)
+  | E_unexpected_eoi (** Unexpected end of input. *)
+  | E_malformed_char_stream (** Malformed underlying character stream. *)
+  | E_unknown_encoding of string (** Unknown encoding. *)
+  | E_unknown_entity_ref of string (** Unknown entity reference, 
+				       {{:#input} details}. *)
+  | E_illegal_char_ref of string (** Illegal character reference. *)
+  | E_illegal_char_seq of string (** Illegal character sequence. *)
+  | E_expected_char_seqs of string list * string
+    (** Expected one of the character sequences in the list 
+	but found another. *)
+  | E_expected_root_element (** Expected the document's root element. *)
+
+val error_message : error -> string
+(** Converts the error to an english error message. *)
+
+
 (** {1 Input} *)
 
 type input
@@ -86,12 +106,14 @@ val input : ?enc:encoding option -> ?strip:bool ->
    ?prune:(tag -> 'a -> bool) -> 
    ?d:(string -> 'a -> 'a)  ->
    ?s:(tag -> 'a -> 'a) ->	
-   ?e:(tag -> 'a -> 'a) -> 'a -> input -> 'a 
-(** Inputs an XML document and invokes callbacks
-    on the {{:http://www.w3.org/TR/REC-xml/#dt-root} root element}. 
-    The value of type ['a] is passed to 
-    the first callback, it is the initial value for the accumulator.
-    The function returns the value returned by the last callback.
+   ?e:(tag -> 'a -> 'a) -> 'a -> input -> 
+     [ `Value of 'a | `Error of (int * int) * error ]
+(** Inputs an XML document and invokes callbacks on the
+    {{:http://www.w3.org/TR/REC-xml/#dt-root} root element}.  The
+    value of type ['a] is passed to the first callback, it is the
+    initial value for the accumulator.  The function returns [`Value]
+    with the value returned by the last callback or an [`Error] with the 
+    line and column number (both start with [1]), and the cause. 
     {ul 
     {- [enc], character encoding of the document, {{:#input} details}. 
        Defaults to [None].}
@@ -113,9 +135,7 @@ val input : ?enc:encoding option -> ?strip:bool ->
        start tag with its attributes), the return value is the accumulator 
        for the next callback. Default returns the accumulator.}}
     
-   See an {{:#exintree} example}. 
-
-   {b Raises} {!Error}. *)
+   See an {{:#exintree} example}. *)
 
 val input_tree : ?enc:encoding option -> ?strip:bool -> 
    ?entity: (string -> string option) ->
@@ -150,31 +170,6 @@ val input_tree : ?enc:encoding option -> ?strip:bool ->
         it with the value of type ['a] given to {!input_tree}.}}
     
     {b Raises} {!Error}. *)
-
-(** {2 Input errors} *)
-
-(** The type for input errors. *)
-type error = 
-  | E_max_buffer_size (** Maximal buffer size exceeded 
-			  ([Sys.max_string_length]). *)
-  | E_unexpected_eoi (** Unexpected end of input. *)
-  | E_malformed_char_stream (** Malformed underlying character stream. *)
-  | E_unknown_encoding of string (** Unknown encoding. *)
-  | E_unknown_entity_ref of string (** Unknown entity reference, 
-				       {{:#input} details}. *)
-  | E_illegal_char_ref of string (** Illegal character reference. *)
-  | E_illegal_char_seq of string (** Illegal character sequence. *)
-  | E_expected_char_seqs of string list * string
-    (** Expected one of the character sequences in the list 
-	but found another. *)
-  | E_expected_root_element (** Expected the document's root element. *)
-
-val error_message : error -> string
-(** Converts the error to an english error message. *)
-
-exception Error of (int * int) * error
-(** Raised on input errors, reports the line and column number (both 
-    start with [1]). *)
 
 (** {1 Output} *)
 

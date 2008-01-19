@@ -667,11 +667,12 @@ let input ?(enc = None) ?(strip = false)
     p_xml_decl p ~ignore_enc:(find_encoding p enc);
     p_dtd p;
     match p.limit with
-    | Stag _ -> p_element p; p.accum
+    | Stag _ -> p_element p; `Value p.accum
     | _ -> err p E_expected_root_element
   with
-   (* This is brittle. *)
-  | Failure "Buffer.add: cannot grow buffer" ->  err p E_max_buffer_size 
+  | Error (pos, e) -> `Error (pos, e)
+  | Failure "Buffer.add: cannot grow buffer" ->    (* This is brittle. *)
+      `Error ((p.line, p.col), E_max_buffer_size)
 
 let input_tree ?enc ?strip
     ?(entity = fun _ -> None)
@@ -705,8 +706,9 @@ let input_tree ?enc ?strip
     | [] -> assert false
   in
   match input ?enc ?strip ~entity ~prolog ~prune ~s ~d ~e [] i with
-  | [ [ root ] ] -> Some root
-  | [ [] ] -> None
+  | `Value [ [ root ] ] -> Some root
+  | `Value [ [] ] -> None
+  | `Error (p,e) -> raise (Error (p,e))
   | _ -> assert false
 
 (* Output *)
