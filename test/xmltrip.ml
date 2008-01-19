@@ -112,13 +112,13 @@ let process tree enc strip ename xhtml parse_only outline indent suffix files =
 
 let encoding_of_str enc = match (String.lowercase enc) with
 | "" -> None
-| "utf-8" | "utf8" | "utf_8" -> Some Xmlm.UTF_8
-| "utf-16" | "utf16" | "utf_16" -> Some Xmlm.UTF_16
-| "utf-16be" | "utf16be" | "utf16_be" -> Some Xmlm.UTF_16BE
-| "utf-16le" | "utf16le" | "utf16_le" -> Some Xmlm.UTF_16LE
+| "utf-8" | "utf8" | "utf_8" -> Some `UTF_8
+| "utf-16" | "utf16" | "utf_16" -> Some `UTF_16
+| "utf-16be" | "utf16be" | "utf16_be" -> Some `UTF_16BE
+| "utf-16le" | "utf16le" | "utf16_le" -> Some `UTF_16LE
 | "iso-8859-1" | "iso88591" 
-| "iso_8859_1" | "latin1" | "latin-1" -> Some Xmlm.ISO_8859_1 
-| "ascii" | "us-ascii" -> Some Xmlm.US_ASCII
+| "iso_8859_1" | "latin1" | "latin-1" -> Some `ISO_8859_1 
+| "ascii" | "us-ascii" -> Some `US_ASCII
 | e -> pr_err (str "unknown encoding '%s', trying to guess." e); None
 
 let main () = 

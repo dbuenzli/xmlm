@@ -33,16 +33,18 @@
     {b Version} %%VERSION%%, %%EMAIL%%
     {1 Basic types} *)
 
-(** The type for encodings. *)
-type encoding = 
-  | UTF_8 
-  | UTF_16   
+(** The type for character encodings. For [`UTF_16],
+    endianness is determined from the 
+	  {{:http://www.unicode.org/unicode/faq/utf_bom.html#BOM}BOM}. *) 
+type encoding = [ 
+  | `UTF_8 
+  | `UTF_16   
       (** Endianness determined from the 
 	  {{:http://www.unicode.org/unicode/faq/utf_bom.html#BOM}BOM}. *)
-  | UTF_16BE 
-  | UTF_16LE 
-  | ISO_8859_1
-  | US_ASCII
+  | `UTF_16BE 
+  | `UTF_16LE 
+  | `ISO_8859_1
+  | `US_ASCII ]
       
 type dtd = string option
 (** The type for the optional
@@ -64,20 +66,20 @@ type 'a tree = [ `El of 'a * tag * 'a tree list | `D of string ]
     The type ['a] is for user labels. *) 
 
 (** The type for input errors. *)
-type error = 
-  | E_max_buffer_size (** Maximal buffer size exceeded 
-			  ([Sys.max_string_length]). *)
-  | E_unexpected_eoi (** Unexpected end of input. *)
-  | E_malformed_char_stream (** Malformed underlying character stream. *)
-  | E_unknown_encoding of string (** Unknown encoding. *)
-  | E_unknown_entity_ref of string (** Unknown entity reference, 
-				       {{:#input} details}. *)
-  | E_illegal_char_ref of string (** Illegal character reference. *)
-  | E_illegal_char_seq of string (** Illegal character sequence. *)
-  | E_expected_char_seqs of string list * string
-    (** Expected one of the character sequences in the list 
-	but found another. *)
-  | E_expected_root_element (** Expected the document's root element. *)
+type error = [
+  | `Max_buffer_size (** Maximal buffer size exceeded 
+			 ([Sys.max_string_length]). *)
+  | `Unexpected_eoi (** Unexpected end of input. *)
+  | `Malformed_char_stream (** Malformed underlying character stream. *)
+  | `Unknown_encoding of string (** Unknown encoding. *)
+  | `Unknown_entity_ref of string (** Unknown entity reference, 
+				      {{:#input} details}. *)
+  | `Illegal_char_ref of string (** Illegal character reference. *)
+  | `Illegal_char_seq of string (** Illegal character sequence. *)
+  | `Expected_char_seqs of string list * string
+	(** Expected one of the character sequences in the list 
+	    but found another. *)
+  | `Expected_root_element (** Expected the document's root element. *) ]
 
 val error_message : error -> string
 (** Converts the error to an english error message. *)
@@ -112,8 +114,8 @@ val input : ?enc:encoding option -> ?strip:bool ->
     {{:http://www.w3.org/TR/REC-xml/#dt-root} root element}.  The
     value of type ['a] is passed to the first callback, it is the
     initial value for the accumulator.  The function returns [`Value]
-    with the value returned by the last callback or an [`Error] with the 
-    line and column number (both start with [1]), and the cause. 
+    with the value returned by the last callback or an [`Error] with the
+    [(line, column)] numbers (both start with [1]) and the cause. 
     {ul 
     {- [enc], character encoding of the document, {{:#input} details}. 
        Defaults to [None].}

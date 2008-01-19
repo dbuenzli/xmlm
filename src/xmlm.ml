@@ -6,34 +6,36 @@
 
 let str = Printf.sprintf
 
-type error = 
-  | E_max_buffer_size
-  | E_unexpected_eoi
-  | E_malformed_char_stream
-  | E_unknown_encoding of string 
-  | E_unknown_entity_ref of string
-  | E_illegal_char_ref of string
-  | E_illegal_char_seq of string
-  | E_expected_char_seqs of string list * string
-  | E_expected_root_element
+type error = [
+  | `Max_buffer_size
+  | `Unexpected_eoi
+  | `Malformed_char_stream
+  | `Unknown_encoding of string 
+  | `Unknown_entity_ref of string
+  | `Illegal_char_ref of string
+  | `Illegal_char_seq of string
+  | `Expected_char_seqs of string list * string
+  | `Expected_root_element ]
 
 let error_message = function
-  | E_max_buffer_size -> "maximal buffer size exceeded"
-  | E_unexpected_eoi -> "unexpected end of input"
-  | E_malformed_char_stream -> "malformed character stream"
-  | E_unknown_encoding e -> str "unknown encoding (%s)" e
-  | E_unknown_entity_ref e -> str "unknown entity reference (%s)" e
-  | E_illegal_char_ref s -> str "illegal character reference (#%s)" s
-  | E_illegal_char_seq s -> str "character sequence \"%s\" illegal here" s
-  | E_expected_root_element -> "expected root element"
-  | E_expected_char_seqs (exps, fnd) -> 
+  | `Max_buffer_size -> "maximal buffer size exceeded"
+  | `Unexpected_eoi -> "unexpected end of input"
+  | `Malformed_char_stream -> "malformed character stream"
+  | `Unknown_encoding e -> str "unknown encoding (%s)" e
+  | `Unknown_entity_ref e -> str "unknown entity reference (%s)" e
+  | `Illegal_char_ref s -> str "illegal character reference (#%s)" s
+  | `Illegal_char_seq s -> str "character sequence \"%s\" illegal here" s
+  | `Expected_root_element -> "expected root element"
+  | `Expected_char_seqs (exps, fnd) -> 
       let exps = List.fold_left (fun s v -> str "%s\"%s\", " s v) "" exps in
       str "expected character sequence %sfound \"%s\"" exps fnd
 
 exception Error of (int * int) * error
 exception Malformed                      (* for char streams, internal only *)
 
-type encoding = UTF_8 | UTF_16 | UTF_16BE | UTF_16LE | ISO_8859_1 | US_ASCII
+type encoding = [ `UTF_8 | `UTF_16 | `UTF_16BE | `UTF_16LE | `ISO_8859_1 | 
+                  `US_ASCII ]
+
 type dtd = string option
 type name = string * string
 type attribute = name * string
@@ -236,13 +238,13 @@ let is_name_char = function                   (* {NameChar} - ':' (XML 1.1) *)
 
 let utf8_str u = let b = Buffer.create 4 in add_uchar b u; Buffer.contents b
 let err p e = raise (Error ((p.line, p.col), e))
-let err_illegal_char p u = err p (E_illegal_char_seq (utf8_str u))
-let err_expected_seqs p exps s = err p (E_expected_char_seqs (exps, s))
+let err_illegal_char p u = err p (`Illegal_char_seq (utf8_str u))
+let err_expected_seqs p exps s = err p (`Expected_char_seqs (exps, s))
 let err_expected_chars p exps = 
-  err p (E_expected_char_seqs (List.map utf8_str exps, utf8_str p.u))
+  err p (`Expected_char_seqs (List.map utf8_str exps, utf8_str p.u))
   
 let rec nextc p =                    
-  if p.eoi then err p E_unexpected_eoi;
+  if p.eoi then err p `Unexpected_eoi;
   if p.u = u_nl then (p.line <- p.line + 1; p.col <- 1) else p.col <- p.col + 1;
   try 
     p.u <- p.uchar p.i;
@@ -251,7 +253,7 @@ let rec nextc p =
     if p.u = u_cr then (p.cr <- true; p.u <- u_nl) else p.cr <- false
   with
   | End_of_file -> p.eoi <- true; p.u <- 0
-  | Malformed -> err p E_malformed_char_stream
+  | Malformed -> err p `Malformed_char_stream
 
 let skip_white p = while (is_white p.u) do nextc p done        
 let accept p u = if p.u = u then nextc p else err_expected_chars p [ u ]
@@ -349,7 +351,7 @@ let p_charref p =                               (* {CharRef}, '&' was eaten. *)
     Buffer.clear p.ident; 
     add_uchar p.ident u;                                    (* UTF-8 encode. *)
     Buffer.contents p.ident
-  with Failure _ -> err p (E_illegal_char_ref c) 
+  with Failure _ -> err p (`Illegal_char_ref c) 
 
 let predefined_entities = 
   let h = Hashtbl.create 5 in
@@ -366,7 +368,7 @@ let p_entity_ref p =                          (* {EntityRef}, '&' was eaten. *)
   | Not_found -> 
       match p.fun_entity ent with
       | Some s -> s
-      | None -> err p (E_unknown_entity_ref ent)
+      | None -> err p (`Unknown_entity_ref ent)
 
 let p_reference p =                                           (* {Reference} *)
   accept p u_amp; if p.u = u_sharp then p_charref p else p_entity_ref p
@@ -434,7 +436,7 @@ let p_chardata p = (* {CharData}* ({Reference}{Chardata})* *)
 	  data_addu p p.u;
 	  accept p u_rbrack;                       (* detects ']'*']]>' *)
 	  while (p.u = u_rbrack) do data_addu p p.u; accept p u_rbrack done;
-	  if p.u = u_gt then err p (E_illegal_char_seq "]]>");
+	  if p.u = u_gt then err p (`Illegal_char_seq "]]>");
 	end
     | _ -> data_addu p p.u; nextc p
   done
@@ -484,7 +486,7 @@ let p_limit p =                                    (* Parses a markup limit *)
 	    if cdata = "CDATA[" then Cdata else
 	    err_expected_seqs p ["CDATA["] cdata
 	| 0x0044 (* D *) -> Dtd
-	| c -> err p (E_illegal_char_seq (str "<!%s" (utf8_str c)))
+	| c -> err p (`Illegal_char_seq (str "<!%s" (utf8_str c)))
 	end
     | _ -> Stag (p_qname p)
 
@@ -511,8 +513,8 @@ let rec p_element p =    (* {element},  '<'qname was eaten *)
   | Comment -> skip_comment p
   | Text -> data_start p; p_chardata p
   | Cdata -> data_start p; p_cdata p
-  | Dtd -> err p (E_illegal_char_seq "<!D")
-  | Eoi -> err p E_unexpected_eoi
+  | Dtd -> err p (`Illegal_char_seq "<!D")
+  | Eoi -> err p `Unexpected_eoi
   end;
   if p.path <> [] then (p_limit p; p_element p)
 
@@ -575,8 +577,8 @@ let p_xml_decl p ~ignore_enc =                                (* {XMLDecl}? *)
 	    | "utf-16le" -> stream_utf16le p
 	    | "iso-8859-1" -> stream_iso_8859_1 p
 	    | "us-ascii" | "ascii" -> stream_ascii p
-	    | "utf-16" -> err p E_malformed_char_stream  (* We need a BOM. *)
-	    | enc -> err p (E_unknown_encoding enc)
+	    | "utf-16" -> err p `Malformed_char_stream  (* We need a BOM. *)
+	    | enc -> err p (`Unknown_encoding enc)
 	  end;
 	  skip_white p;
 	  if p.u <> u_qmark then begin 
@@ -600,11 +602,11 @@ let find_encoding p enc =                                  (* Encoding mess. *)
   | None ->                                   (* User doesn't know encoding. *)
       begin match nextc p; p.u with          
       | 0xFE ->                                             (* UTF-16BE BOM. *)
-	  nextc p; if p.u <> 0xFF then err p E_malformed_char_stream;
+	  nextc p; if p.u <> 0xFF then err p `Malformed_char_stream;
 	  reset stream_utf16be p;
 	  true                                 
       | 0xFF ->                                             (* UTF-16LE BOM. *)
-	  nextc p; if p.u <> 0xFE then err p E_malformed_char_stream;
+	  nextc p; if p.u <> 0xFE then err p `Malformed_char_stream;
 	  reset stream_utf16le p;
 	  true                                 
       | 0x3C | _ ->                      (* UTF-8 or other, try declaration. *)
@@ -613,20 +615,20 @@ let find_encoding p enc =                                  (* Encoding mess. *)
       end
   | Some e ->                                        (* User knows encoding. *)
       begin match e with                              
-      | US_ASCII -> reset stream_ascii p
-      | ISO_8859_1 -> reset stream_iso_8859_1 p
-      | UTF_8 -> reset stream_utf8 p
-      | UTF_16 ->                                (* Which UTF-16 ? look BOM. *)
+      | `US_ASCII -> reset stream_ascii p
+      | `ISO_8859_1 -> reset stream_iso_8859_1 p
+      | `UTF_8 -> reset stream_utf8 p
+      | `UTF_16 ->                               (* Which UTF-16 ? look BOM. *)
 	  let b0 = nextc p; p.u in
 	  let b1 = nextc p; p.u in
 	  begin match b0, b1 with                
 	  | 0xFE, 0xFF -> reset stream_utf16be p
 	  | 0xFF, 0xFE -> reset stream_utf16le p
-	  | _ -> err p E_malformed_char_stream;
+	  | _ -> err p `Malformed_char_stream;
 	  end
-      | UTF_16BE ->                                  (* Skip BOM if present. *)
+      | `UTF_16BE ->                                 (* Skip BOM if present. *)
 	  reset stream_utf16be p; if p.u = 0xFEFF then (p.col <- 0; nextc p)
-      | UTF_16LE ->
+      | `UTF_16LE ->
 	  reset stream_utf16le p; if p.u = 0xFEFF then (p.col <- 0; nextc p)
       end;
       true                                        (* Ignore xml declaration. *)
@@ -668,11 +670,11 @@ let input ?(enc = None) ?(strip = false)
     p_dtd p;
     match p.limit with
     | Stag _ -> p_element p; `Value p.accum
-    | _ -> err p E_expected_root_element
+    | _ -> err p `Expected_root_element
   with
   | Error (pos, e) -> `Error (pos, e)
   | Failure "Buffer.add: cannot grow buffer" ->    (* This is brittle. *)
-      `Error ((p.line, p.col), E_max_buffer_size)
+      `Error ((p.line, p.col),  `Max_buffer_size)
 
 let input_tree ?enc ?strip
     ?(entity = fun _ -> None)
