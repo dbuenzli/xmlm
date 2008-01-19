@@ -4,31 +4,28 @@
    Xmlm version %%VERSION%%
   ----------------------------------------------------------------------------*)
 
-(** Sequential XML input/output and persistent cursor. 
+(** XML input/output. 
 
-    The sequential interface reads and writes
-    {{:http://www.w3.org/TR/REC-xml}XML} documents in depth-first
-    order. Input constructs a value by invoking user provided
-    callbacks on the {{:http://www.w3.org/TR/REC-xml/#dt-root} root
-    element}. Output proceeds by writing the structure of a root
-    element on an output abstraction.
+    
+    Xmlm reads and writes {{:http://www.w3.org/TR/REC-xml}XML}
+    documents sequentially. Input constructs a custom value by
+    invoking user provided callbacks on the
+    {{:http://www.w3.org/TR/REC-xml/#dt-root} root element} in
+    depth-first order. Output proceeds by writing the
+    structure of a root element on an output abstraction.
 
-    The {{:#curs}cursor} allows to navigate and update a
-    {{:#TYPEtree}simple} in-memory tree representation of the root
-    element. Updates performed by the cursor are persistent (non
-    destructive).
-
-    Consult the {{:#io}features and limitations} of the 
-    input/output functions and {{:#ex}examples} of use.
+    Consult the {{:#io}features and limitations} and {{:#ex}examples} 
+    of use.
 
     {b References.}
-
-    G. Huet. {e {{:http://dx.doi.org/10.1017/S0956796897002864}The Zipper}. 
-    J. Functional Programming}, 7 (5), Sept 1997, pp. 549-554.
 
     Tim Bray. 
     {e {{:http://www.xml.com/axml/axml.html}The annotated XML Specification}}, 
     1998. 
+
+    Tim Bray et al. 
+    {e {{:http://www.w3.org/TR/REC-xml-names}Namespaces in XML 1.0 (2nd ed.)}},
+    2006.
 
     {b Version} %%VERSION%%, %%EMAIL%%
     {1 Basic types} *)
@@ -61,10 +58,6 @@ type attribute = name * string
 type tag = name * attribute list
 (** The type for an element tag. Tag name and attribute list. *)
 
-type 'a tree = [ `El of 'a * tag * 'a tree list | `D of string ]
-(** The type for trees. Either an element ([`El]) or character data ([`D]). 
-    The type ['a] is for user labels. *) 
-
 (** The type for input errors. *)
 type error = [
   | `Max_buffer_size (** Maximal buffer size exceeded 
@@ -83,6 +76,10 @@ type error = [
 
 val error_message : error -> string
 (** Converts the error to an english error message. *)
+
+(**/**)
+val add_uchar : Buffer.t -> int -> unit
+(**/**)
 
 
 (** {1 Input} *)
@@ -137,41 +134,7 @@ val input : ?enc:encoding option -> ?strip:bool ->
        start tag with its attributes), the return value is the accumulator 
        for the next callback. Default returns the accumulator.}}
     
-   See an {{:#exintree} example}. *)
-
-val input_tree : ?enc:encoding option -> ?strip:bool -> 
-   ?entity: (string -> string option) ->
-   ?prolog: (dtd -> unit) ->
-   ?prune:(tag -> bool) -> 
-   ?d:(string -> string option) -> 
-   ?el:(tag -> 'a tree list -> 'a tree option) -> 'a -> input -> 'a tree option
- (** Inputs an XML document and returns a tree representation of 
-     of the {{:http://www.w3.org/TR/REC-xml/#dt-root} root element} 
-     or [None] if it was pruned. The value of type ['a]
-     is the default label used whenever the argument [el] is left unspecified. 
-     {ul 
-     {- [enc], character encoding of the document, {{:#input} details}. 
-	Defaults to [None].}
-     {- [strip], strips whitespace in character data, {{:#input} details}.
-	Defaults to [false].} 
-     {- [entity] is called to resolve non predefined entity references, 
-        {{:#input} details}. Default returns [None].}
-     {- [prolog] is called with the optional DTD just after the document
-        {{:http://www.w3.org/TR/REC-xml/#NT-prolog}prolog} was parsed.
-        Default does nothing.}
-     {- [prune] is called whenever a new element starts. If it returns [true],
-        no callbacks are invoked for the element and its children, 
-       {{:#input} details}. Default returns [false].}
-     {- [d], is called on character data, if [None] is returned, the given 
-        character data is not included in the resulting tree. 
-        Default returns the argument.}
-     {- [el] is called to construct an element. The function
-        is given the element tag and children, it
-        must return an optional tree (this allows to prune an element after
-        the data has been seen). Default constructs the element and labels
-        it with the value of type ['a] given to {!input_tree}.}}
-    
-    {b Raises} {!Error}. *)
+   See {{:#ex} examples}. *)
 
 (** {1 Output} *)
 
@@ -202,7 +165,7 @@ type signal = [ `S of tag | `D of string | `E ]
 
 
 val output_signal : output -> signal -> unit
-(** Outputs a signal. See {{:#exseq} exa}{{:#exouttree}mples}. 
+(** Outputs a signal. See {{:#ex}examples}. 
 
     {b Raises} [Invalid_argument] if a signal [`D]
     is output outside any open element or if an output [`E] has no matching
@@ -216,95 +179,6 @@ val output_finish : ?nl:bool -> output -> unit
 
     {b Raises.} [Invalid_argument] if an [`S] was output without
      a matching [`E]. *)
-
-val output_tree : ?t:('a tree -> 'a tree option) -> output -> 'a tree -> unit
-(** Outputs signals corresponding to the given tree. [t] is called
-    before an element or character data is written, the result
-    is actually written ([None] outputs nothing), default returns the
-    argument. *)
-
-(** {1:curs Persistent cursor} *)
-
-type 'a cursor
-(** The type for cursors.
-
-    A cursor points on a subtree of a larger tree, the {e complete
-    tree}.  In what follows we {e identify the cursor with the subtree it
-    points on}. The following concepts are defined with respect to a
-    cursor.
-    {ul 
-    {- The {e parent} denotes the unique element in which the cursor
-       is contained. } 
-    {- An {e ancestor}, is either the cursor's parent or an ancestor's parent.}
-    {- The {e root}, is the cursor's ancestor without parent.}
-    {- A {e sibling} denotes a tree whose parent is the same as the cursor.}
-    {- A {e children} denotes a tree whose parent is the cursor.}  
-    {- A {e descendent} denotes a tree which has the cursor as an ancestor. }}
-
-    Note that not all these concepts may exist for a given cursor. *)
-
-val cursor : 'a tree -> 'a cursor
-(** Returns a cursor on the given tree. *)
-
-val tree : 'a cursor -> 'a tree
-(** Returns the tree pointed by the cursor. *)
-
-(** {2 Move and search} *)
-
-val root : 'a cursor -> 'a cursor
-(** Moves to the root. *)
-
-val next : 'a cursor -> 'a cursor option
-(** Moves to the next {e sibling}. *)
-
-val prev : 'a cursor -> 'a cursor option
-(** Moves to the previous {e sibling} (reverse of {!next}). *)
-
-val up : 'a cursor -> 'a cursor option
-(** Moves to the parent. *)
-
-val down : 'a cursor -> 'a cursor option
-(** Moves to the first child.  *)
-
-val dnext : 'a cursor -> 'a cursor option
-(** Moves to the next {e node} on the depth-first order enumeration of 
-    the complete tree.  *)
-val dprev : 'a cursor -> 'a cursor option
-(** Moves to the previous {e node} on the depth-first order enumeration of
-    the complete tree (reverse of {!dnext}). *)
-
-val find : ('a cursor -> 'a cursor option) -> 
-  ('a cursor -> bool) -> 'a cursor option -> 'a cursor option
-(** [find mv p c] return the first cursor that satisfies the
-    predicate [p] in the cursor enumeration starting with [c] and 
-    specified by the move function [mv]. 
-    The search stops when [mv] returns [None]. *)
-
-(** {2 Edit} 
-
-    Edits that create two or three adjacent character data siblings
-    merge them into a single node [`D]. *)
-
-val set_tree : 'a cursor -> 'a tree -> 'a cursor
-(** Sets the cursor to the given tree. *)
-
-val delete : 'a cursor -> 'a cursor
-(** Deletes the (tree pointed by the) cursor and moves to the previous
-    sibling or up if it doesn't exist. {b Raises} [Invalid_argument] on 
-    the root. *)
-
-val insert_below : 'a cursor -> 'a tree -> 'a cursor
-(** Inserts a tree before the children of the element pointed by the
-    cursor. The new cursor points on the inserted tree. {b Raises}
-    [Invalid_argument] on character data. *)
-
-val insert_before : 'a cursor -> 'a tree -> 'a cursor
-(** Inserts a tree before the cursor. The new cursor points on the inserted 
-    tree. {b Raises} [Invalid_argument] on the root. *)
-
-val insert_after : 'a cursor -> 'a tree -> 'a cursor
-(** Inserts a tree after the cursor. The new cursor points on the inserted
-    tree. {b Raises} [Invalid_argument] on the root. *)
 
 (** {1:io Features and limitations}
     
@@ -453,59 +327,58 @@ val insert_after : 'a cursor -> 'a tree -> 'a cursor
   Xmlm.input ~prune ~prolog ~d ~s ~e () i;
   Xmlm.output_finish o]}
 
-    {2:exintree Custom tree input} 
+    {2 Custom tree input/output} 
     
-    To build a tree you can directly use {!input_tree}. However you may
-    need to interface with a different tree data structure. This can 
-    be done with {!input}. Assume your trees are defined as 
-    follows.
-    {[type t = El of Xmlm.tag * t list | D of string ]}
-    The accumulator ([path]) given to {!input} is a stack of lists of
-    type [t] representing ancestor elements whose parsing needs to be
-    finished, more children need to be parsed. The top of the stack
-    holds the children of the element being parsed. When a new element
-    starts, [s] is invoked, it pushes an empty list of children on the
-    stack. When an element ends, [e] is invoked, it constructs the
-    value [el] for the element with the children on top of the stack,
-    pops the stack, and adds [el] to the parent's children ([parent]).
-    The function [d] is called on character data, it just adds a new
-    child in the list of children on top of the stack.
-{[let in_tree ic =
-  let i = Xmlm.input_of_channel ic in
+    The following code can be found in the [test/tree.ml] file 
+    of the distribution.
+    
+    Assume your trees are defined as follows.
+    {[type t = [ `El of Xmlm.tag * t list | `D of string ]]}
+    To construct the tree, the accumulator ([path]) given to {!input}
+    is a stack of lists of type [t] representing ancestor elements
+    whose parsing needs to be finished, more children need to be
+    parsed. The top of the stack holds the children of the element
+    being parsed. When a new element starts, [s] is invoked, it pushes
+    an empty list of children on the stack. When an element ends, [e]
+    is invoked, it constructs the value [el] for the element with the
+    children on top of the stack, pops the stack, and adds [el] to the
+    parent's children ([parent]).  The function [d] is called on
+    character data, it just adds a new child in the list of children
+    on top of the stack.
+{[let input ?enc ?strip ?entity ?prolog ?prune i = 
   let d data = function 
-    | childs :: path -> ((D data) :: childs) :: path 
+    | childs :: path -> ((`D data) :: childs) :: path 
     | [] -> assert false
   in
   let s _ path = [] :: path in
   let e tag = function
     | childs :: path -> 
-	let el = El (tag, List.rev childs) in
-	begin match path with
-	| parent :: path' -> (el :: parent) :: path' 
-	| [] -> [ [ el ] ]
-	end
+        let el = `El (tag, List.rev childs) in
+        begin match path with
+        | parent :: path' -> (el :: parent) :: path' 
+        | [] -> [ [ el ] ]
+        end
     | [] -> assert false
   in
-  match Xmlm.input ~d ~s ~e [] i with
-  | [ [ root ] ] -> root
-  | _ -> assert false (* cannot happen (no pruning) *)
+  match Xmlm.input ?enc ?strip ?entity ?prolog ~d ~s ~e [] i with
+  | `Value [ [ root ] ] -> `Value (Some root)
+  | `Value [ [] ]  -> `Value None (* the root was pruned *)
+  | `Error _ as e -> e
+  | _ -> assert false
 ]}
 
-  {2:exouttree Custom tree output} 
-
-  We show how to output the tree representation [t] of the last
-  section. Care must be taken to make the function tail recursive.
-
-  The internal function [aux] matches on a stack of lists of type [t]
-  representing ancestor elements whose output needs to be finished,
-  more children need to be output.
+  The function below outputs signals corresponding to the structure of
+  the given tree. Care must be taken to make the function tail
+  recursive. The internal function [aux] matches on a stack of lists
+  of type [t] representing ancestor elements whose output needs to be
+  finished, more children need to be output.
   {ol 
   {- If the list on the top of the stack is not empty we deconstruct it.
     {ol
-    {- If the head is an element [El], it is signalled with a [`S],
+    {- If the head is an element [`El], it is signaled with a [`S],
        removed from the list, and we push its children of on the
        stack. These need to be output now, before the rest.}
-    {- If the head is character data [D], it is signaled with a [`D]
+    {- If the head is character data [`D], it is signaled with a [`D]
        and removed from the list of children on top of the stack.}}}
   {- If the list on the top of the stack is empty and the stack is empty,
      we have output everything. We can stop.}
@@ -514,30 +387,24 @@ val insert_after : 'a cursor -> 'a tree -> 'a cursor
      Thus we signal the end of an element with an [`E] and pop the stack.}}
 
  We start [aux] with the root element on the stack. 
-{[let out_tree oc t = 
-  let o = Xmlm.output_of_channel oc in 
+{[let output o t = 
   let rec aux o = function
     | (n :: next) :: path -> 
-      begin match n with
-      | El (tag, childs) -> 
-	  Xmlm.output_signal o (`S tag); 
-	  aux o (childs :: next :: path)
-      | D d -> 
-	  Xmlm.output_signal o (`D d);
-	  aux o (next :: path)
-      end
+	begin match n with
+	| `El (tag, childs) -> 
+            Xmlm.output_signal o (`S tag); 
+            aux o (childs :: next :: path)
+	| `D _ as d -> 
+            Xmlm.output_signal o d;
+            aux o (next :: path)
+	end
     | [] :: [] -> ()
     | [] :: path -> Xmlm.output_signal o `E; aux o path
     | [] -> assert false
   in
-  Xmlm.output_prolog o None;
-  aux o [ [ t ] ];
-  Xmlm.output_finish o]}
+  aux o [ [ t ] ]
+]}
 *) 
-
-(**/**)
-val add_uchar : Buffer.t -> int -> unit
-(**/**)
 
 (*----------------------------------------------------------------------------
   Copyright (c) %%COPYRIGHTYEAR%%, Daniel C. Bünzli

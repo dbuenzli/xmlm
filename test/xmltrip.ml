@@ -15,10 +15,12 @@ let fail ((l, c), e) = failwith (str "%d:%d: %s" l c (Xmlm.error_message e))
 
 let xml_parse tree enc strip entity ic () =                    (* parse only *)
   let i = Xmlm.input_of_channel ic in
-  if tree then ignore (Xmlm.input_tree ~enc ~strip ~entity () i) else
-  match Xmlm.input ~enc ~strip ~entity () i with
-  | `Value () -> ()
-  | `Error e -> fail e
+  if tree then 
+    match Tree.input ~enc ~strip ~entity i with
+    | `Value _ -> () | `Error e -> fail e
+  else
+    match Xmlm.input ~enc ~strip ~entity () i with
+  | `Value () -> () | `Error e -> fail e
   
 let xml_outline tree enc strip entity ic oc =               (* ascii outline *)
   let pr s = Printf.fprintf oc s in
@@ -35,7 +37,7 @@ let xml_outline tree enc strip entity ic oc =               (* ascii outline *)
     let rec pr_tree d = function
       | (n :: next) :: path -> 
 	  begin match n with
-	  | `El ((), tag, childs) -> 
+	  | `El (tag, childs) -> 
 	      pr_tag d tag; pr_tree (d+1) (childs :: next :: path)
 	  | `D data -> 
 	      pr_data d data; pr_tree d (next :: path)
@@ -44,15 +46,17 @@ let xml_outline tree enc strip entity ic oc =               (* ascii outline *)
       | [] :: path -> pr_tree (d - 1) path
       | [] -> assert false
     in
-    match Xmlm.input_tree ~enc ~strip ~entity ~prolog:pr_dtd () i with
-    | Some t -> pr_tree 0 [ [ t ] ]; flush oc
-    | None -> assert false
+    match Tree.input ~enc ~strip ~entity ~prolog:pr_dtd i with
+    | `Value (Some t) -> pr_tree 0 [ [ t ] ]; flush oc
+    | `Error e -> fail e
+    | `Value None -> assert false (* no pruning *)
   else
     let s tag depth = pr_tag depth tag; depth + 1 in
     let d data depth = pr_data depth data; depth in
     let e _ depth = depth - 1 in
-    ignore (Xmlm.input ~enc ~strip ~entity ~prolog:pr_dtd ~s ~d ~e 0 i);
-    flush oc
+    match Xmlm.input ~enc ~strip ~entity ~prolog:pr_dtd ~s ~d ~e 0 i with
+    | `Value _ -> flush oc
+    | `Error e -> fail e
 
 let xml_xml indent tree enc strip entity ic oc =                (* xml trip *)
   let nl = (indent = None) in
@@ -60,9 +64,10 @@ let xml_xml indent tree enc strip entity ic oc =                (* xml trip *)
   let o = Xmlm.output_of_channel ~indent oc in
   let prolog = Xmlm.output_prolog o in
   if tree then 
-    match Xmlm.input_tree ~enc ~strip ~entity ~prolog () i with
-    | Some t -> Xmlm.output_tree o t; Xmlm.output_finish ~nl o 
-    | None -> assert false
+    match Tree.input ~enc ~strip ~entity ~prolog i with
+    | `Value (Some t) -> Tree.output o t; Xmlm.output_finish ~nl o 
+    | `Error e -> fail e
+    | `Value None -> assert false (* no pruning *)
   else
     let d data _ = Xmlm.output_signal o (`D data) in 
     let s tag _ = Xmlm.output_signal o (`S tag) in
