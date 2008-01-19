@@ -30,7 +30,7 @@
     {e {{:http://www.xml.com/axml/axml.html}The annotated XML Specification}}, 
     1998. 
 
-    {b Version} %%VERSION%% daniel.buenzl i\@erratique.ch
+    {b Version} %%VERSION%%, %%EMAIL%%
     {1 Basic types} *)
 
 (** The type for encodings. *)
