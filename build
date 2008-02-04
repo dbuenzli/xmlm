@@ -29,6 +29,8 @@ action ()
       ocb $PROJECTNAME.cmx $PROJECTNAME.cmo ;;
     test) 
       ocb xmltrip.native ;;
+    cursor)
+      ocb cursor.cmx cursor.cmo ;;
     doc)
       ocb $PROJECTNAME.cmi
       $OCAMLDOC -html -I src -colorize-code -d $DOCDIR src/$PROJECTNAME.mli ;;
