@@ -46,8 +46,8 @@ pre { margin: 3ex 0em 1ex 0em; }
 .keywordsign { color : black } 
 .code { color : black }
 .info { margin: 0em 0em 0em 2em }
-.comment { color : Green }
-.constructor { color : #A00 }
+.comment { color : red }
+.constructor { color : #072 }
 .type { color : black }
 .string { color : #bc8f8f }
 .warning { color : Red ; font-weight : bold }
