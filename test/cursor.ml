@@ -7,7 +7,7 @@
 
 type 'a tree = [ `El of 'a * Xmlm.tag * 'a tree list | `D of string ]
 
-let input_tree ?enc ?strip
+let input_tree ?enc ?strip ?names
     ?(entity = fun _ -> None)
     ?(prolog = fun _ -> ())
     ?(prune = fun _ -> false) 

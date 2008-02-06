@@ -4,14 +4,14 @@
    Xmlm version %%VERSION%%
   ----------------------------------------------------------------------------*)
 
-(** XML input/output. 
-
+(** Sequential XML IO. 
     
-    Xmlm reads and writes {{:http://www.w3.org/TR/REC-xml}XML}
+    Xmlm inputs and outputs {{:http://www.w3.org/TR/REC-xml}XML}
     documents sequentially. Input constructs a custom value by
-    invoking user provided callbacks on the
-    {{:http://www.w3.org/TR/REC-xml/#dt-root} root element} in
-    depth-first order. Output proceeds by writing the
+    invoking client provided callbacks on the
+    {{:http://www.w3.org/TR/REC-xml/#dt-root} root element} in depth first 
+    order. 
+    Output proceeds by writing in depth first order the
     structure of a root element on an output abstraction.
 
     Consult the {{:#io}features and limitations} and {{:#ex}examples} 
@@ -24,11 +24,11 @@
     1998. 
 
     Tim Bray et al. 
-    {e {{:http://www.w3.org/TR/REC-xml-names}Namespaces in XML 1.0 (2nd ed.)}},
+    {e {{:http://www.w3.org/TR/xml-names11}Namespaces in XML 1.1 (2nd ed.)}},
     2006.
 
     {b Version} %%VERSION%%, %%EMAIL%%
-    {1 Basic types} *)
+    {1 Basic types and values} *)
 
 (** The type for character encodings. For [`UTF_16],
     endianness is determined from the 
@@ -66,7 +66,7 @@ type error = [
   | `Malformed_char_stream (** Malformed underlying character stream. *)
   | `Unknown_encoding of string (** Unknown encoding. *)
   | `Unknown_entity_ref of string (** Unknown entity reference, 
-				      {{:#input} details}. *)
+				      {{:#inentity} details}. *)
   | `Illegal_char_ref of string (** Illegal character reference. *)
   | `Illegal_char_seq of string (** Illegal character sequence. *)
   | `Expected_char_seqs of string list * string
@@ -76,6 +76,15 @@ type error = [
 
 val error_message : error -> string
 (** Converts the error to an english error message. *)
+
+
+val ns_xml : string 
+(** Namespace name {{:http://www.w3.org/XML/1998/namespace}value} bound to the 
+    reserved ["xml"] prefix. *)
+
+val ns_xmlns : string
+(** Namespace name {{:http://www.w3.org/2000/xmlns/}value} bound to the 
+    reserved ["xmlns"] prefix. *)
 
 (**/**)
 val add_uchar : Buffer.t -> int -> unit
@@ -114,25 +123,27 @@ val input : ?enc:encoding option -> ?strip:bool ->
     with the value returned by the last callback or an [`Error] with the
     [(line, column)] numbers (both start with [1]) and the cause. 
     {ul 
-    {- [enc], character encoding of the document, {{:#input} details}. 
+    {- [enc], character encoding of the document, {{:#inenc} details}. 
        Defaults to [None].}
-    {- [strip], strips whitespace in character data, {{:#input} details}.
+    {- [strip], strips whitespace in character data, {{:#inwspace} details}.
        Defaults to [false].} 
     {- [entity] is called to resolve non predefined entity references,
-       {{:#input} details}. Default returns [None].}
+       {{:#inentity} details}. Default returns always [None].}
+    {- [prune] is called whenever a new element starts. If it returns [true],
+       no callbacks are invoked for the element and its children, 
+       {{:#inprune} details}. Default returns always [false].}
     {- [prolog] is called with the optional DTD just after the document
        {{:http://www.w3.org/TR/REC-xml/#NT-prolog}prolog} was parsed.
        Default does nothing.}
-    {- [prune] is called whenever a new element starts. If it returns [true],
-       no callbacks are invoked for the element and its children, 
-       {{:#input} details}. Default returns [false].}
-    {- [d], is called on character data, the return value is 
-       the accumulator for the next callback. Default returns the accumulator.}
     {- [s], is called whenever an element starts, the return value is
        the accumulator for the next callback. Default returns the accumulator.}
     {- [e], is called whenever an element ends (the given tag is the element's 
        start tag with its attributes), the return value is the accumulator 
-       for the next callback. Default returns the accumulator.}}
+       for the next callback. Default returns the accumulator.}
+    {- [d], is called on character data, the return value is 
+       the accumulator for the next callback. Default returns the accumulator.
+       The module guarantees that this function won't be called twice 
+       consecutively.}}
     
    See {{:#ex} examples}. *)
 
@@ -169,7 +180,8 @@ val output_signal : output -> signal -> unit
 
     {b Raises} [Invalid_argument] if a signal [`D]
     is output outside any open element or if an output [`E] has no matching
-    [`S]. *)
+    [`S] or with expanded names, if a namespace name could
+     not be bound to a prefix. *)
 
 val output_finish : ?nl:bool -> output -> unit
 (**  Must be called to finish output. If [nl] is [true] a newline
@@ -185,10 +197,10 @@ val output_finish : ?nl:bool -> output -> unit
     The module assumes strings are immutable, thus strings
     you give or receive {e during} input and output must not
     be modified.
-    
     {2:input Input}
-    {ul    
-    {- Encoding. The parser supports ASCII, US-ASCII, 
+    {3:inenc Encoding}    
+
+    The parser supports ASCII, US-ASCII, 
     {{:http://www.faqs.org/rfcs/rfc3629.html} UTF-8},
     {{:http://www.faqs.org/rfcs/rfc2781.html} UTF-16},
     {{:http://www.faqs.org/rfcs/rfc2781.html} UTF-16LE},
@@ -197,57 +209,84 @@ val output_finish : ?nl:bool -> output -> unit
     (Latin-1) encoded documents. But strings returned by
     the library are {b always} UTF-8 encoded. 
     
-    The encoding can be specified
-    explicitely using the optional argument [enc]. Otherwise the parser
-    uses the encoding specified in the 
-    {{:http://www.w3.org/TR/REC-xml/#NT-XMLDecl} XML declaration}.
-    If there is no such declaration,
-    UTF-16 is used provided there is an UTF-16 encoded 
+    The encoding can be specified explicitly using the optional
+    argument [enc]. Otherwise the parser uses the encoding specified
+    in the {{:http://www.w3.org/TR/REC-xml/#NT-XMLDecl} XML
+    declaration}.  If there is no such declaration, UTF-16 is used
+    provided there is an UTF-16 encoded
     {{:http://www.unicode.org/unicode/faq/utf_bom.html#BOM}BOM} at the
-    beginning of the document. Otherwise UTF-8 is assumed. }
-    {- White space handling (mon Dieu). 
-    
-       Attribute data. The parser performs
-       {{:http://www.w3.org/TR/REC-xml/#AVNormalize}attribute data
-       normalization} on {e every} attribute data.  This means that
-       attribute data does not have leading and trailling white space and that 
-       any white space is collapsed and transformed to a single [' '] space 
-       character.
+    beginning of the document. Otherwise UTF-8 is assumed.
+    {3:inwspace White space handling}
 
-       Character data. White space handling of character data depends
-       on the [strip] argument. If [strip] is [true],
-       character data is treated like attribute data, white space before
-       and after elements is removed and any white space is collapsed and
-       transformed to a single [' '] space character. 
-       If [strip] is [false] (default) then all white
-       space data is preserved as present in the document (however all
-       kinds of 
-       {{:http://www.w3.org/TR/REC-xml/#sec-line-ends}line ends} are
-       translated to the single character ['\n']). }
-    {- Entity references.
+    The parser performs
+    {{:http://www.w3.org/TR/REC-xml/#AVNormalize}attribute data
+    normalization} on {e every} attribute data.  This means that
+    attribute data does not have leading and trailling white space and that 
+    any white space is collapsed and transformed to a single [' '] space 
+    character.
+
+    White space handling of character data depends on the [strip]
+    argument. If [strip] is [true], character data is treated like
+    attribute data, white space before and after elements is removed
+    and any white space is collapsed and transformed to a single [' ']
+    space character.  If [strip] is [false] (default) then all white
+    space data is preserved as present in the document (however all
+    kinds of {{:http://www.w3.org/TR/REC-xml/#sec-line-ends}line ends}
+    are translated to the single character ['\n']).  
+    {3:inns Namespaces}
+
+    The type of names passed to the callbacks depends on the 
+    [names] argument. With [`Qname] they are 
+    {{:http://www.w3.org/TR/xml-names11/#dt-qualname}qualified names}.
+    With [`Ename] they are 
+    {{:http://www.w3.org/TR/xml-names11/#dt-expname}expanded names}.
+
+    The optional function given with [`Ename] is used to specify a
+    namespace name for a prefix undeclared in a given input
+    scope. Given the undeclared prefix the function must return a
+    namespace name. If the function returns [None] an
+    [`Unknown_ns_prefix] error is returned.  The default function
+    returns always [None].
+
+    With expanded names attributes used for namespace
+    declarations are still passed to the callbacks. They are in 
+    the {!ns_xmlns} namespace. Default namespace
+    declarations made with {i xmlns} have the attribute name 
+    [(Xmlm.ns_xmlns, "xmlns")]. Prefix declarations have the prefix
+    as the local name, for example {i xmlns:ex}
+    results in [(Xmlm.ns_xmlns, "ex")].
+
+    Regarding constraints on the usage of the {i xml} and {i xmlns}
+    prefixes by documents, the parser does not report errors on violations 
+    of the {i must} constraints listed in
+    {{:http://www.w3.org/TR/xml-names11/#xmlReserved}this paragraph}. 
+    {3:inentity Entity references}
+
     {{:http://www.w3.org/TR/REC-xml/#dt-charref}Character references} and
     {{:http://www.w3.org/TR/REC-xml/#sec-predefined-ent}predefined
     entities} are automatically resolved. Other entity references
     can be resolved by the callback [entity], which
-    must return an UTF-8 string corresponding to the replacement character data
-    (the replacement data is {e not} analysed for further references, it is
-     added to the data as such modulo white space stripping). If
-    [entity] returns [None] the error [E_unknown_entity_ref] is raised.}
-    {- Pruning. Elements can be pruned at parse time by using the [prune]
-    callback. To understand how this interacts with white space handling, 
-    think about pruning as if characters from the starting ['<'] of
-    the element until the closing ['>'] are deleted from the document and
-    the result is parsed. Note that in pruned elements, 
-    attribute and character data parsing is rough. 
-    This means that non well-formed documents
-    can be read without producing errors (e.g. presence of a ['<'] in 
-    attribute data of a pruned element).}    
+    must return an UTF-8 string corresponding to the replacement character data.
+    The replacement data is {e not} analysed for further references, it is
+     added to the data as such modulo white space stripping. If
+    [entity] returns [None] the error [`Unknown_entity_ref] is returned.
+    {3:inprune Pruning} 
+
+    Elements can be pruned at parse time by using
+    the [prune] callback. To understand how this interacts with white
+    space handling, think about pruning as if characters from the
+    starting ['<'] of the element until the closing ['>'] are deleted
+    from the document and the result is parsed. Note that in pruned
+    elements, attribute and character data parsing is rough.  This
+    means that non well-formed documents can be read without producing
+    errors (e.g. presence of a ['<'] in attribute data of a pruned
+    element).
+    {3:inmisc Miscellaneous}
+    {ul
     {- Parsing ends when the root element is closed. No data is consumed
        beyond the closing ['>'] of the root element. If you expect another
        document after, you can continue to input with the same input 
        abstraction.}
-    {- Parses qualified names 
-    ({{:http://www.w3.org/TR/REC-xml-names}namespaces}).}
     {- Parses the more liberal and simpler XML 1.1 
     {{:http://www.w3.org/TR/xml11/#NT-Name}Name} definition (minus [':'] because
     of namespaces).}
@@ -257,25 +296,69 @@ val output_finish : ?nl:bool -> output -> unit
     {{:http://www.w3.org/TR/REC-xml/#dt-comment}comments}, 
     {{:http://www.w3.org/TR/REC-xml/#dt-pi}processing instructions}, and 
     {{:http://www.w3.org/TR/REC-xml/#sec-rmd}standalone declaration}.}
+    {- Element attribute names are not checked for uniqueness.}
     {- Attribute and character data chunks are limited by 
-       [Sys.max_string_length]. An {!error} is raised if the limit is hit.}
+       [Sys.max_string_length]. The error [`Max_buffer_size] is returned if the 
+    limit is hit.}
     {- Tail recursive.}
     {- Non validating.}
     }
     
-    {2:output Output}
+
+    {2:output Output} 
+    {3:outenc Encoding} 
+
+    Outputs only {{:http://www.faqs.org/rfcs/rfc3629.html} UTF-8}
+    encoded documents. Strings given to output functions {b must be}
+    UTF-8 encoded, no checks are performed.
+    {3:outns Namespaces}
+
+    The type of names expected by output functions depends on the
+    [names] argument. With [`Qname] they are
+    {{:http://www.w3.org/TR/xml-names11/#dt-qualname}qualified
+    names}.  With [`Ename] they are
+    {{:http://www.w3.org/TR/xml-names11/#dt-expname}expanded names}.
+
+
+    Expanded names are automatically converted to
+    {{:http://www.w3.org/TR/xml-names11/#dt-qualname}qualified
+    names} by the module. There is no particular api to specify 
+    prefixes and default namespaces, 
+    the actual result depends solely on the output
+    of attributes belonging to the {!ns_xmlns} namespace. For example to set 
+    the default namespace of an element to {i http://example.org/myns}, 
+    use the following attribute :
+    {[(* xmlns='http://example.org/myns' *)
+let default_ns = (Xmlm.ns_xmlns, "xmlns"), "http://example.org/myns"]}
+    To bind the prefix ["ex"] to {i http://example.org/ex}, use the 
+    following attribute :
+    {[(* xmlns:ex='http://example.org/ex' *)
+let ex_ns = (Xmlm.ns_xmlns, "ex"), "http://example.org/ex"]}
+    Note that chaining input with expanded names to output 
+    with expanded names without touching namespace declaration 
+    attributes will preserve existing prefixes and bindings provided
+    the same namespace name is not bound to different prefixes in
+    a given context.
+
+    The optional function given with [`Ename] is used to give a prefix
+    to a namespace name lacking a prefix binding in the current output
+    scope. Given the namespace name without prefix binding, the function
+    must return a prefix to use. Note that this will {b not} add any namespace 
+    declaration attribute to the output.
+    If the function returns [None], {!output_signal} 
+    will raise [Invalid_argument].  The default function returns always [None].
+    
+    {3:outindent Indentation}
+
+    Output can be indented by specifying the [indent] argument when an
+       output abstraction is created. If [indent] is [None] (default)
+       signal output does not introduce any extra white space.  If
+       [ident] is [Some c], each {!signal} is output on its own line
+       (for empty elements [`S] and [`E] are collapsed on a single
+       line) and nested elements are indented with [c] space
+       characters.
+    {3:outmisc Miscellaneous}
     {ul
-    {- Encoding. Outputs 
-        only {{:http://www.faqs.org/rfcs/rfc3629.html} UTF-8}
-       encoded documents. Strings given to output functions {b must be} 
-       UTF-8 encoded, no checks are performed.}
-    {- Indentation. Output can be indented by specifying the [indent]
-       argument when an output abstraction is created. If [indent] is [None] 
-       (default) signal output does not introduce any extra white space.
-       If [ident] is [Some c], each {!signal}
-       is output on its own line (for empty elements [`S] 
-       and [`E] are collapsed on a single line)
-       and nested elements are indented with [c] space characters.}
     {- In attribute and character data you provide, markup 
        delimiters ['<'],['>'],['&'], and ['\"'] are 
         automatically escaped to 
@@ -285,7 +368,7 @@ val output_finish : ?nl:bool -> output -> unit
         UTF-8 encoded.}
     {- No checks are peformed on the prefix and local part of 
       {!name}s to verify they are
-      {{:http://www.w3.org/TR/REC-xml-names/#NT-NCName}NCName}s.
+      {{:http://www.w3.org/TR/xml-names11/#NT-NCName}NCName}s.
       For example using the tag name [("","dip d")] will produce 
       a non well-formed document because of the space character.}
     {- Tail recursive.}}
@@ -295,10 +378,14 @@ val output_finish : ?nl:bool -> output -> unit
     {- The best options to do an input/output round trip
        and preserve as much information as possible is to 
        input with [strip = false] and output with [indent = None].}
-    {- If you don't need all information in the document, parsing 
+    {- Performance. 
+
+       If you don't need all information in the document, parsing 
        performance can be improved on large inputs by pruning with [prune]. 
        Once an element gets pruned, its subtree is parsed but no attribute and 
-       character data is buffered.}}
+       character data is buffered.
+
+       IO with qualified names is faster.}} 
 *)
 
 (** {1:ex Examples} 
@@ -321,23 +408,24 @@ val output_finish : ?nl:bool -> output -> unit
   let o = Xmlm.output_of_channel oc in
   let prolog = Xmlm.output_prolog o in
   let prune (name, _) _ = List.mem name prune_list in 
-  let d data _ = Xmlm.output_signal o (`D data) in 
   let s tag _ = Xmlm.output_signal o (`S tag) in
   let e _ _ = Xmlm.output_signal o `E in
-  Xmlm.input ~prune ~prolog ~d ~s ~e () i;
+  let d data _ = Xmlm.output_signal o (`D data) in 
+  Xmlm.input ~prune ~prolog ~s ~e ~d () i;
   Xmlm.output_finish o]}
 
     {2 Custom tree input/output} 
     
     The following code can be found in the [test/tree.ml] file 
-    of the distribution.
+    of the distribution and is put in the public domain.
     
     Assume your trees are defined as follows.
     {[type t = [ `El of Xmlm.tag * t list | `D of string ]]}
     To construct the tree, the accumulator ([path]) given to {!input}
     is a stack of lists of type [t] representing ancestor elements
-    whose parsing needs to be finished, more children need to be
-    parsed. The top of the stack holds the children of the element
+    whose parsing needs to be finished, more children needs to parsed. 
+    The top of the stack holds the 
+    children of the element
     being parsed. When a new element starts, [s] is invoked, it pushes
     an empty list of children on the stack. When an element ends, [e]
     is invoked, it constructs the value [el] for the element with the
@@ -345,7 +433,7 @@ val output_finish : ?nl:bool -> output -> unit
     parent's children ([parent]).  The function [d] is called on
     character data, it just adds a new child in the list of children
     on top of the stack.
-{[let input ?enc ?strip ?entity ?prolog ?prune i = 
+{[let input ?enc ?strip ?names ?entity ?prune ?prolog i = 
   let d data = function 
     | childs :: path -> ((`D data) :: childs) :: path 
     | [] -> assert false
@@ -360,7 +448,7 @@ val output_finish : ?nl:bool -> output -> unit
         end
     | [] -> assert false
   in
-  match Xmlm.input ?enc ?strip ?entity ?prolog ~d ~s ~e [] i with
+  match Xmlm.input ?enc ?strip ?names ?entity ?prune ?prolog ~s ~e ~d [] i with
   | `Value [ [ root ] ] -> `Value (Some root)
   | `Value [ [] ]  -> `Value None (* the root was pruned *)
   | `Error _ as e -> e

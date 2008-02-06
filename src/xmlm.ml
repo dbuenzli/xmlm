@@ -30,7 +30,7 @@ let error_message = function
       let exps = List.fold_left (fun s v -> str "%s\"%s\", " s v) "" exps in
       str "expected character sequence %sfound \"%s\"" exps fnd
 
-exception Error of (int * int) * error
+exception Error of (int * int) * error                     (* internal only *)
 exception Malformed                      (* for char streams, internal only *)
 
 type encoding = [ `UTF_8 | `UTF_16 | `UTF_16BE | `UTF_16LE | `ISO_8859_1 | 
@@ -52,6 +52,9 @@ type limit =                            (* XML is a strange beast to parse. *)
   | Eoi            (* End of input *)
 
 let name_str (p,l) = if p <> "" then str "%s:%s" p l else str "%s" l
+
+let ns_xml = "http://www.w3.org/XML/1998/namespace"
+let ns_xmlns = "http://www.w3.org/2000/xmlns/"
 
 (* Input *)
 
@@ -327,14 +330,14 @@ let tag_end p name = match p.path with
     end
 | [] -> assert false
 
-let p_ncname p =                                 (* {NCName} (Namespace 1.0) *)	
+let p_ncname p =                                 (* {NCName} (Namespace 1.1) *)	
   Buffer.clear p.ident;
   if not (is_name_start_char p.u) then err_illegal_char p p.u;
   add_uchar p.ident p.u; nextc p;
   while is_name_char p.u do add_uchar p.ident p.u; nextc p done;
   Buffer.contents p.ident
     
-let p_qname p =                                   (* {QName} (Namespace 1.0) *)
+let p_qname p =                                   (* {QName} (Namespace 1.1) *)
   let n = p_ncname p in
   if p.u <> u_colon then ("", n) else (accept p u_colon; (n, p_ncname p))
 
