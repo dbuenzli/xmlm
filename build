@@ -13,7 +13,7 @@ DOCDIR=${DOCDIR:="doc"}
 # Caml tools
 OCAMLDOC=${OCAMLDOC:="ocamldoc"}
 OCAMLBUILD=${OCAMLBUILD:="ocamlbuild"}
-BUILDFLAGS="-cflags -g,-dtypes -Is test,src"
+BUILDFLAGS="-classic-display -cflags -g,-dtypes -Is test,src"
 
 # Misc tools
 CP=${CP:="cp"}
