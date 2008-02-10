@@ -48,9 +48,11 @@ type dtd = string option
     {{:http://www.w3.org/TR/REC-xml/#dt-doctype}DTD}. *)
 
 type name = string * string 
-(** The type for attribute and element names. 
-    Prefix ({{:http://www.w3.org/TR/REC-xml-names}namespace}, may be empty) 
-    and local part. *)
+(** The type for attribute and element's
+    {{:http://www.w3.org/TR/xml-names11/#dt-expname}expanded names} 
+    [(uri,local)]. An empty [uri] represents a name without a
+    namespace name, i.e. an unprefixed name 
+    that is not under the scope of a default namespace. *)
 
 type attribute = name * string
 (** The type for attributes. Name and attribute data. *)
@@ -67,6 +69,8 @@ type error = [
   | `Unknown_encoding of string (** Unknown encoding. *)
   | `Unknown_entity_ref of string (** Unknown entity reference, 
 				      {{:#inentity} details}. *)
+  | `Unknown_ns_prefix of string (** Unknown namespace prefix 
+				     {{:#inns} details} *)
   | `Illegal_char_ref of string (** Illegal character reference. *)
   | `Illegal_char_seq of string (** Illegal character sequence. *)
   | `Expected_char_seqs of string list * string
@@ -109,13 +113,14 @@ val input_of_fun : (unit -> int) -> input
     such byte. *)
 
 val input : ?enc:encoding option -> ?strip:bool -> 
+   ?ns: (string -> string option) ->
    ?entity: (string -> string option) ->
    ?prolog: (dtd -> unit) ->
    ?prune:(tag -> 'a -> bool) -> 
-   ?d:(string -> 'a -> 'a)  ->
    ?s:(tag -> 'a -> 'a) ->	
-   ?e:(tag -> 'a -> 'a) -> 'a -> input -> 
-     [ `Value of 'a | `Error of (int * int) * error ]
+   ?e:(tag -> 'a -> 'a) -> 
+   ?d:(string -> 'a -> 'a)  -> 'a -> input -> 
+     [ `Success of 'a | `Error of (int * int) * error ]
 (** Inputs an XML document and invokes callbacks on the
     {{:http://www.w3.org/TR/REC-xml/#dt-root} root element}.  The
     value of type ['a] is passed to the first callback, it is the
@@ -127,6 +132,8 @@ val input : ?enc:encoding option -> ?strip:bool ->
        Defaults to [None].}
     {- [strip], strips whitespace in character data, {{:#inwspace} details}.
        Defaults to [false].} 
+    {- [ns] is called to bind undeclared namespace prefixes,
+       {{:#inns} details}. Default returns always [None].}
     {- [entity] is called to resolve non predefined entity references,
        {{:#inentity} details}. Default returns always [None].}
     {- [prune] is called whenever a new element starts. If it returns [true],
@@ -152,16 +159,23 @@ val input : ?enc:encoding option -> ?strip:bool ->
 type output
 (** The type for output abstractions. *)
 
-(** In the functions below, [indent] defaults to [None]. Indentation
-{{:#output} details}.  *)
+(** In the functions below, 
+    {ul 
+    {- [prefix] defeault always returns [None].
+    See namespace {{:#outns}details}.}
+    {- [indent] defaults to [None]. See indentation {{:#outindent} details.}}}*)
 
-val output_of_channel : ?indent:int option -> out_channel -> output
+
+val output_of_channel : ?indent:int option -> 
+  ?prefix:(string -> string option) -> out_channel -> output
 (** Output abstraction from the given channel. *)
 
-val output_of_buffer : ?indent:int option -> Buffer.t -> output
+val output_of_buffer : ?indent:int option -> 
+  ?prefix:(string -> string option) -> Buffer.t -> output
 (** Output abstraction from the given buffer. *)
 
-val output_of_fun : ?indent:int option -> (int -> unit) -> output
+val output_of_fun : ?indent:int option -> 
+  ?prefix:(string -> string option) -> (int -> unit) -> output
 (** Output abstraction from the given function. The function is
     called with the output {e bytes} as [int]s. *)
 
@@ -180,8 +194,7 @@ val output_signal : output -> signal -> unit
 
     {b Raises} [Invalid_argument] if a signal [`D]
     is output outside any open element or if an output [`E] has no matching
-    [`S] or with expanded names, if a namespace name could
-     not be bound to a prefix. *)
+    [`S] or if a namespace name could not be bound to a prefix. *)
 
 val output_finish : ?nl:bool -> output -> unit
 (**  Must be called to finish output. If [nl] is [true] a newline
@@ -235,26 +248,20 @@ val output_finish : ?nl:bool -> output -> unit
     are translated to the single character ['\n']).  
     {3:inns Namespaces}
 
-    The type of names passed to the callbacks depends on the 
-    [names] argument. With [`Qname] they are 
-    {{:http://www.w3.org/TR/xml-names11/#dt-qualname}qualified names}.
-    With [`Ename] they are 
+    Names passed to callbacks are 
     {{:http://www.w3.org/TR/xml-names11/#dt-expname}expanded names}.
 
-    The optional function given with [`Ename] is used to specify a
-    namespace name for a prefix undeclared in a given input
-    scope. Given the undeclared prefix the function must return a
-    namespace name. If the function returns [None] an
-    [`Unknown_ns_prefix] error is returned.  The default function
-    returns always [None].
+    The parser automatically handles the document's namespace
+    declarations.  Undeclared namespace prefixes can be bound via the
+    callback [ns], which must return a namespace name. If [ns] returns
+    [None] an [`Unknown_ns_prefix] error is returned.
 
-    With expanded names attributes used for namespace
-    declarations are still passed to the callbacks. They are in 
-    the {!ns_xmlns} namespace. Default namespace
-    declarations made with {i xmlns} have the attribute name 
-    [(Xmlm.ns_xmlns, "xmlns")]. Prefix declarations have the prefix
-    as the local name, for example {i xmlns:ex}
-    results in [(Xmlm.ns_xmlns, "ex")].
+    Attributes used for namespace declarations are still passed to the
+    callbacks. They are in the {!ns_xmlns} namespace. Default
+    namespace declarations made with {i xmlns} have the attribute name
+    [(Xmlm.ns_xmlns, "xmlns")]. Prefix declarations have the prefix as
+    the local name, for example {i xmlns:ex} results in
+    [(Xmlm.ns_xmlns, "ex")].
 
     Regarding constraints on the usage of the {i xml} and {i xmlns}
     prefixes by documents, the parser does not report errors on violations 

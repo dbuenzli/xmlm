@@ -19,8 +19,8 @@ let input ?enc ?strip ?entity ?prolog ?prune i =
     | [] -> assert false
   in
   match Xmlm.input ?enc ?strip ?entity ?prolog ~d ~s ~e [] i with
-  | `Value [ [ root ] ] -> `Value (Some root)
-  | `Value [ [] ]  -> `Value None (* the root was pruned *)
+  | `Success [ [ root ] ] -> `Success (Some root)
+  | `Success [ [] ]  -> `Success None (* the root was pruned *)
   | `Error _ as e -> e
   | _ -> assert false
 

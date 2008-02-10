@@ -17,10 +17,10 @@ let xml_parse tree enc strip entity ic () =                    (* parse only *)
   let i = Xmlm.input_of_channel ic in
   if tree then 
     match Tree.input ~enc ~strip ~entity i with
-    | `Value _ -> () | `Error e -> fail e
+    | `Success _ -> () | `Error e -> fail e
   else
     match Xmlm.input ~enc ~strip ~entity () i with
-  | `Value () -> () | `Error e -> fail e
+  | `Success () -> () | `Error e -> fail e
   
 let xml_outline tree enc strip entity ic oc =               (* ascii outline *)
   let pr s = Printf.fprintf oc s in
@@ -47,15 +47,15 @@ let xml_outline tree enc strip entity ic oc =               (* ascii outline *)
       | [] -> assert false
     in
     match Tree.input ~enc ~strip ~entity ~prolog:pr_dtd i with
-    | `Value (Some t) -> pr_tree 0 [ [ t ] ]; flush oc
+    | `Success (Some t) -> pr_tree 0 [ [ t ] ]; flush oc
     | `Error e -> fail e
-    | `Value None -> assert false (* no pruning *)
+    | `Success None -> assert false (* no pruning *)
   else
     let s tag depth = pr_tag depth tag; depth + 1 in
     let d data depth = pr_data depth data; depth in
     let e _ depth = depth - 1 in
     match Xmlm.input ~enc ~strip ~entity ~prolog:pr_dtd ~s ~d ~e 0 i with
-    | `Value _ -> flush oc
+    | `Success _ -> flush oc
     | `Error e -> fail e
 
 let xml_xml indent tree enc strip entity ic oc =                (* xml trip *)
@@ -65,15 +65,15 @@ let xml_xml indent tree enc strip entity ic oc =                (* xml trip *)
   let prolog = Xmlm.output_prolog o in
   if tree then 
     match Tree.input ~enc ~strip ~entity ~prolog i with
-    | `Value (Some t) -> Tree.output o t; Xmlm.output_finish ~nl o 
+    | `Success (Some t) -> Tree.output o t; Xmlm.output_finish ~nl o 
     | `Error e -> fail e
-    | `Value None -> assert false (* no pruning *)
+    | `Success None -> assert false (* no pruning *)
   else
     let d data _ = Xmlm.output_signal o (`D data) in 
     let s tag _ = Xmlm.output_signal o (`S tag) in
     let e _ _ = Xmlm.output_signal o `E in
     match Xmlm.input ~enc ~strip ~entity ~prolog ~d ~s ~e () i with
-    | `Value () -> Xmlm.output_finish ~nl o
+    | `Success () -> Xmlm.output_finish ~nl o
     | `Error e -> fail e
 
 let with_inf f inf v = 

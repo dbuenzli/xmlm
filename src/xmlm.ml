@@ -12,6 +12,7 @@ type error = [
   | `Malformed_char_stream
   | `Unknown_encoding of string 
   | `Unknown_entity_ref of string
+  | `Unknown_ns_prefix of string
   | `Illegal_char_ref of string
   | `Illegal_char_seq of string
   | `Expected_char_seqs of string list * string
@@ -23,6 +24,7 @@ let error_message = function
   | `Malformed_char_stream -> "malformed character stream"
   | `Unknown_encoding e -> str "unknown encoding (%s)" e
   | `Unknown_entity_ref e -> str "unknown entity reference (%s)" e
+  | `Unknown_ns_prefix e -> str "unknown namespace prefix (%s)" e
   | `Illegal_char_ref s -> str "illegal character reference (#%s)" s
   | `Illegal_char_seq s -> str "character sequence \"%s\" illegal here" s
   | `Expected_root_element -> "expected root element"
@@ -637,12 +639,13 @@ let find_encoding p enc =                                  (* Encoding mess. *)
       true                                        (* Ignore xml declaration. *)
     
 let input ?(enc = None) ?(strip = false) 
+    ?(ns = fun _ -> None)
     ?(entity = fun _ -> None)
     ?(prolog = fun _ -> ())
     ?(prune = fun _ _ -> false) 
-    ?(d = fun _ acc -> acc) 
     ?(s = fun _ acc -> acc) 
-    ?(e = fun _ acc -> acc) accum i = 
+    ?(e = fun _ acc -> acc) 
+    ?(d = fun _ acc -> acc) accum i = 
   let p = 
     { i = i;
       strip = strip;
@@ -672,7 +675,7 @@ let input ?(enc = None) ?(strip = false)
     p_xml_decl p ~ignore_enc:(find_encoding p enc);
     p_dtd p;
     match p.limit with
-    | Stag _ -> p_element p; `Value p.accum
+    | Stag _ -> p_element p; `Success p.accum
     | _ -> err p `Expected_root_element
   with
   | Error (pos, e) -> `Error (pos, e)
@@ -690,20 +693,20 @@ type output =
       mutable depth : int;                                 (* Nesting depth. *)
       mutable nest : name list }                            (* Name nesting. *)
 
-let output_of ?(indent = None) out outc = 
+let output_of ?(indent = None) ?(prefix = fun _ -> None) out outc = 
   { out = out; outc = outc; s_last = None; indent = indent; depth = 0; 
     nest = [] }
 
-let output_of_channel ?indent oc = 
-  output_of ?indent (output oc) (output_char oc)
+let output_of_channel ?indent ?prefix oc = 
+  output_of ?indent ?prefix (output oc) (output_char oc)
 
-let output_of_buffer ?indent b = 
-  output_of ?indent (Buffer.add_substring b) (Buffer.add_char b)
+let output_of_buffer ?indent ?prefix b = 
+  output_of ?indent ?prefix (Buffer.add_substring b) (Buffer.add_char b)
 
-let output_of_fun ?indent f =
+let output_of_fun ?indent ?prefix f =
   let out = fun s p l -> for i = p to p + l - 1 do f (Char.code s.[p]) done in
   let outc = fun c -> f (Char.code c) in
-  output_of ?indent out outc
+  output_of ?indent ?prefix out outc
 
 let err_el_open n = str "unclosed element (%s) on output" (name_str n)
 let err_el_end = str "end of element without matching start element"
