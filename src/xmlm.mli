@@ -154,10 +154,37 @@ val input : ?enc:encoding option -> ?strip:bool ->
     
    See {{:#ex} examples}. *)
 
+val input_tree : ?enc:encoding option -> ?strip:bool -> 
+   ?ns: (string -> string option) ->
+   ?entity: (string -> string option) ->
+   ?prolog: (dtd -> unit) ->
+   ?prune:(tag -> bool) -> 
+   el:(tag -> 'a list -> 'a) -> 
+   d:(string -> 'a)  -> input -> 
+     [ `Success of 'a option | `Error of (int * int) * error ]
+(** See {!input}. This function facilitates the construction 
+    of tree datastructures via the [el] and [d] callbacks. [None] is
+    returned in case of success if the root element was pruned.
+    {ul 
+    {- [el], is called after an element was parsed with its tag and 
+    children.} 
+    {- [d], is called on character data. The module guarantees that this
+     function won't be called twice consecutively.}} 
+
+    See an {{:#extree} example}.*)
+
 (** {1 Output} *)
 
 type output
 (** The type for output abstractions. *)
+
+type signal = [ `S of tag | `D of string | `E ]
+(** The type for signals. Signals are output fragments, they denote
+    either the start of an element ([`S]) or the end of an element
+    ([`E]) or character data ([`D]). *)
+
+type 'a tree = [ `El of tag * 'a list | `D of string ]
+(** The type for deconstructing trees. *)
 
 (** In the functions below, 
     {ul 
@@ -183,12 +210,6 @@ val output_prolog : output -> dtd -> unit
 (** Outputs a document {{:http://www.w3.org/TR/REC-xml/#NT-prolog}prolog}. 
     You {e should} call this function even if you don't have a DTD. *)
 
-type signal = [ `S of tag | `D of string | `E ]
-(** The type for signals. Signals are output fragments, they denote
-    either the start of an element ([`S]) or the end of an element
-    ([`E]) or character data ([`D]). *)
-
-
 val output_signal : output -> signal -> unit
 (** Outputs a signal. See {{:#ex}examples}. 
 
@@ -196,6 +217,10 @@ val output_signal : output -> signal -> unit
     is output outside any open element or if an output [`E] has no matching
     [`S] or if a namespace name could not be bound to a prefix. *)
 
+val output_tree : ('a -> 'a tree) -> output -> 'a -> unit
+(** Outputs signals corresponding to the given tree by using
+    the given tree deconstructor. See an {{:#extree} example}. *)
+   
 val output_finish : ?nl:bool -> output -> unit
 (**  Must be called to finish output. If [nl] is [true] a newline
     character ['\n'] is output, defaults to [false]. Note that for outputs on
@@ -421,84 +446,26 @@ let ex_ns = (Xmlm.ns_xmlns, "ex"), "http://example.org/ex"]}
   Xmlm.input ~prune ~prolog ~s ~e ~d () i;
   Xmlm.output_finish o]}
 
-    {2 Custom tree input/output} 
+    {2:extree Tree processing} 
     
-    The following code can be found in the [test/tree.ml] file 
-    of the distribution and is put in the public domain.
-    
+    Trees can be easily input and output with {!input_tree} and 
+    {!output_tree}.
+
     Assume your trees are defined as follows.
-    {[type t = [ `El of Xmlm.tag * t list | `D of string ]]}
-    To construct the tree, the accumulator ([path]) given to {!input}
-    is a stack of lists of type [t] representing ancestor elements
-    whose parsing needs to be finished, more children needs to parsed. 
-    The top of the stack holds the 
-    children of the element
-    being parsed. When a new element starts, [s] is invoked, it pushes
-    an empty list of children on the stack. When an element ends, [e]
-    is invoked, it constructs the value [el] for the element with the
-    children on top of the stack, pops the stack, and adds [el] to the
-    parent's children ([parent]).  The function [d] is called on
-    character data, it just adds a new child in the list of children
-    on top of the stack.
-{[let input ?enc ?strip ?names ?entity ?prune ?prolog i = 
-  let d data = function 
-    | childs :: path -> ((`D data) :: childs) :: path 
-    | [] -> assert false
+    {[type tree = El of Xmlm.tag * tree list | D of string]}
+    The following function builds a value of type [tree] on input. 
+{[let input_tree = 
+  let el tag childs = El (tag, childs) in
+  let d data = D data in
+  Xmlm.input_tree ~el ~d]}
+    The following function outputs signals corresponding to 
+    the given tree.
+{[let output_tree = 
+  let fold = function 
+    | El (tag, childs) -> `El (tag, childs) 
+    | D d -> `D d 
   in
-  let s _ path = [] :: path in
-  let e tag = function
-    | childs :: path -> 
-        let el = `El (tag, List.rev childs) in
-        begin match path with
-        | parent :: path' -> (el :: parent) :: path' 
-        | [] -> [ [ el ] ]
-        end
-    | [] -> assert false
-  in
-  match Xmlm.input ?enc ?strip ?names ?entity ?prune ?prolog ~s ~e ~d [] i with
-  | `Value [ [ root ] ] -> `Value (Some root)
-  | `Value [ [] ]  -> `Value None (* the root was pruned *)
-  | `Error _ as e -> e
-  | _ -> assert false
-]}
-
-  The function below outputs signals corresponding to the structure of
-  the given tree. Care must be taken to make the function tail
-  recursive. The internal function [aux] matches on a stack of lists
-  of type [t] representing ancestor elements whose output needs to be
-  finished, more children need to be output.
-  {ol 
-  {- If the list on the top of the stack is not empty we deconstruct it.
-    {ol
-    {- If the head is an element [`El], it is signaled with a [`S],
-       removed from the list, and we push its children of on the
-       stack. These need to be output now, before the rest.}
-    {- If the head is character data [`D], it is signaled with a [`D]
-       and removed from the list of children on top of the stack.}}}
-  {- If the list on the top of the stack is empty and the stack is empty,
-     we have output everything. We can stop.}
-  {- If the list on the top of the stack is empty but the stack is not,
-     we finished to output the children of an element. 
-     Thus we signal the end of an element with an [`E] and pop the stack.}}
-
- We start [aux] with the root element on the stack. 
-{[let output o t = 
-  let rec aux o = function
-    | (n :: next) :: path -> 
-	begin match n with
-	| `El (tag, childs) -> 
-            Xmlm.output_signal o (`S tag); 
-            aux o (childs :: next :: path)
-	| `D _ as d -> 
-            Xmlm.output_signal o d;
-            aux o (next :: path)
-	end
-    | [] :: [] -> ()
-    | [] :: path -> Xmlm.output_signal o `E; aux o path
-    | [] -> assert false
-  in
-  aux o [ [ t ] ]
-]}
+  Xmlm.output_tree fold]}
 *) 
 
 (*----------------------------------------------------------------------------

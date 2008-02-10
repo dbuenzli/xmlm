@@ -42,7 +42,6 @@ type dtd = string option
 type name = string * string
 type attribute = name * string
 type tag = name * attribute list 
-type 'a tree = [ `El of 'a * tag * 'a tree list | `D of string ]
 type limit =                            (* XML is a strange beast to parse. *) 
   | Stag of name   (* '<' qname *) 
   | Etag of name   (* '</' qname *) 
@@ -682,9 +681,35 @@ let input ?(enc = None) ?(strip = false)
   | Failure "Buffer.add: cannot grow buffer" ->    (* This is brittle. *)
       `Error ((p.line, p.col),  `Max_buffer_size)
 
+
+let input_tree ?enc ?strip ?ns ?entity ?prolog 
+    ?(prune = fun _ -> false) ~el ~d i = 
+  let d data = function 
+    | childs :: path -> ((d data) :: childs) :: path 
+    | [] -> assert false
+  in
+  let s _ path = [] :: path in
+  let e tag = function
+    | childs :: path -> 
+        let el = el tag (List.rev childs) in
+        begin match path with
+        | parent :: path' -> (el :: parent) :: path' 
+        | [] -> [ [ el ] ]
+        end
+    | [] -> assert false
+  in
+  let prune tag _ = prune tag in
+  match input ?enc ?strip ?ns ?entity ?prolog ~prune ~d ~s ~e [] i with
+  | `Success [ [ root ] ] -> `Success (Some root)
+  | `Success [ [] ]  -> `Success None (* the root was pruned *)
+  | `Error _ as e -> e
+  | _ -> assert false
+
+
 (* Output *)
 
 type signal = [ `S of tag | `D of string | `E ]
+type 'a tree = [ `El of tag * 'a list | `D of string ]
 type output = 
     { out : string -> int -> int -> unit;
       outc : char -> unit;
@@ -780,6 +805,23 @@ let output_signal o sgn =
       out_s_last o;
       out o o.depth out_data d;
       o.s_last <- None
+
+let output_tree fold o t = 
+  let rec aux o = function
+    | (n :: next) :: path -> 
+	begin match fold n with
+	| `El (tag, childs) -> 
+            output_signal o (`S tag); 
+            aux o (childs :: next :: path)
+	| `D _ as d -> 
+            output_signal o d;
+            aux o (next :: path)
+	end
+    | [] :: [] -> ()
+    | [] :: path -> output_signal o `E; aux o path
+    | [] -> assert false
+  in
+  aux o [ [ t ] ]
 
 let output_finish ?(nl = false) o = match o.nest with 
 | n :: _ -> invalid_arg (err_el_open n) 

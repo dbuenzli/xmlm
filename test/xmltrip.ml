@@ -13,10 +13,24 @@ let apply f x ~finally y =
 
 let fail ((l, c), e) = failwith (str "%d:%d: %s" l c (Xmlm.error_message e))
 
+type tree = El of Xmlm.tag * tree list | D of string
+
+let input_tree = 
+  let el tag childs = El (tag, childs) in
+  let d data = D data in
+  Xmlm.input_tree ~el ~d
+
+let output_tree = 
+  let fold = function 
+    | El (tag, childs) -> `El (tag, childs) 
+    | D d -> `D d 
+  in
+  Xmlm.output_tree fold
+
 let xml_parse tree enc strip entity ic () =                    (* parse only *)
   let i = Xmlm.input_of_channel ic in
   if tree then 
-    match Tree.input ~enc ~strip ~entity i with
+    match input_tree ~enc ~strip ~entity i with
     | `Success _ -> () | `Error e -> fail e
   else
     match Xmlm.input ~enc ~strip ~entity () i with
@@ -37,16 +51,16 @@ let xml_outline tree enc strip entity ic oc =               (* ascii outline *)
     let rec pr_tree d = function
       | (n :: next) :: path -> 
 	  begin match n with
-	  | `El (tag, childs) -> 
+	  | El (tag, childs) -> 
 	      pr_tag d tag; pr_tree (d+1) (childs :: next :: path)
-	  | `D data -> 
+	  | D data -> 
 	      pr_data d data; pr_tree d (next :: path)
 	  end
       | [] :: [] -> ()
       | [] :: path -> pr_tree (d - 1) path
       | [] -> assert false
     in
-    match Tree.input ~enc ~strip ~entity ~prolog:pr_dtd i with
+    match input_tree ~enc ~strip ~entity ~prolog:pr_dtd i with
     | `Success (Some t) -> pr_tree 0 [ [ t ] ]; flush oc
     | `Error e -> fail e
     | `Success None -> assert false (* no pruning *)
@@ -64,8 +78,8 @@ let xml_xml indent tree enc strip entity ic oc =                (* xml trip *)
   let o = Xmlm.output_of_channel ~indent oc in
   let prolog = Xmlm.output_prolog o in
   if tree then 
-    match Tree.input ~enc ~strip ~entity ~prolog i with
-    | `Success (Some t) -> Tree.output o t; Xmlm.output_finish ~nl o 
+    match input_tree ~enc ~strip ~entity ~prolog i with
+    | `Success (Some t) -> output_tree o t; Xmlm.output_finish ~nl o 
     | `Error e -> fail e
     | `Success None -> assert false (* no pruning *)
   else
