@@ -31,14 +31,14 @@
     {b Version} %%VERSION%%, %%EMAIL%%
     {1 Basic types and values} *)
 
-(** The type for character encodings. For [`UTF_16],
-    endianness is determined from the 
-	  {{:http://www.unicode.org/unicode/faq/utf_bom.html#BOM}BOM}. *) 
+(** The type for character encodings. For [`UTF_16], endianness is
+    determined from the 
+    {{:http://www.unicode.org/unicode/faq/utf_bom.html#BOM}BOM}. *)
 type encoding = [ 
   | `UTF_8 
   | `UTF_16   
-      (** Endianness determined from the 
-	  {{:http://www.unicode.org/unicode/faq/utf_bom.html#BOM}BOM}. *)
+  (** Endianness determined from the 
+      {{:http://www.unicode.org/unicode/faq/utf_bom.html#BOM}BOM}. *)
   | `UTF_16BE 
   | `UTF_16LE 
   | `ISO_8859_1
@@ -61,17 +61,12 @@ type attribute = name * string
 type tag = name * attribute list
 (** The type for an element tag. Tag name and attribute list. *)
 
-type signal = [ 
-  | `Doc_start of dtd 
-  | `Doc_end
-  | `El_start of tag
-  | `El_end
-  | `Data of string ]
+type signal = [ `Dtd of dtd | `El_start of tag | `El_end | `Data of string ]
 (** The type for signals. A {e valid} sequence of signals belongs
     to the language of the [doc] grammar :
-    {[doc ::= `Doc_start tree `Doc_end
+    {[doc ::= `Dtd tree
 tree ::= `El_start child `El_end
-child ::= `Data | tree | eps ]}
+child ::= `Data | tree | epsilon ]}
     Input and output deal only with valid sequences or
     exceptions are raised.
 *)
@@ -84,11 +79,6 @@ val ns_xmlns : string
 (** Namespace name {{:http://www.w3.org/2000/xmlns/}value} bound to the 
     reserved ["xmlns"] prefix. *)
 
-(**/**)
-val add_uchar : Buffer.t -> int -> unit
-(**/**)
-
-
 (** {1 Input} *)
 
 type pos = int * int 
@@ -97,21 +87,26 @@ type pos = int * int
 
 (** The type for input errors. *)
 type error = [
-  | `Max_buffer_size (** Maximal buffer size exceeded 
-			 ([Sys.max_string_length]). *)
-  | `Unexpected_eoi (** Unexpected end of input. *)
-  | `Malformed_char_stream (** Malformed underlying character stream. *)
-  | `Unknown_encoding of string (** Unknown encoding. *)
-  | `Unknown_entity_ref of string (** Unknown entity reference, 
-				      {{:#inentity} details}. *)
-  | `Unknown_ns_prefix of string (** Unknown namespace prefix 
-				     {{:#inns} details} *)
-  | `Illegal_char_ref of string (** Illegal character reference. *)
-  | `Illegal_char_seq of string (** Illegal character sequence. *)
+  | `Max_buffer_size 
+  (** Maximal buffer size exceeded ([Sys.max_string_length]). *)
+  | `Unexpected_eoi 
+  (** Unexpected end of input. *)
+  | `Malformed_char_stream 
+  (** Malformed underlying character stream. *)
+  | `Unknown_encoding of string 
+  (** Unknown encoding. *)
+  | `Unknown_entity_ref of string 
+  (** Unknown entity reference, {{:#inentity} details}. *)
+  | `Unknown_ns_prefix of string 
+  (** Unknown namespace prefix {{:#inns} details} *)
+  | `Illegal_char_ref of string 
+  (** Illegal character reference. *)
+  | `Illegal_char_seq of string 
+  (** Illegal character sequence. *)
   | `Expected_char_seqs of string list * string
-	(** Expected one of the character sequences in the list 
-	    but found another. *)
-  | `Expected_root_element (** Expected the document's root element. *) ]
+  (** Expected one of the character sequences in the list but found another. *)
+  | `Expected_root_element 
+  (** Expected the document's root element. *) ]
 
 val error_message : error -> string
 (** Converts the error to an english error message. *)
@@ -119,22 +114,19 @@ val error_message : error -> string
 exception Error of pos * error
 (** Raised on input errors. *)
 
-
-type source = [ `Channel of in_channel | 
-                `String of int * string | 
-		`Fun of (unit -> int) ]
-(** The type for input sources. For [`String] starts reading at the given 
-    integer position.
-    For [`Fun] the function must return the next {e byte} as an 
-    [int] and raise [End_of_file] if there is no such byte. *)
+type source = [ 
+  | `Channel of in_channel | `String of int * string | `Fun of (unit -> int) ]
+(** The type for input sources. For [`String] starts reading at the
+    given integer position. For [`Fun] the function must return the
+    next {e byte} as an [int] and raise [End_of_file] if there is no
+    such byte. *)
 
 type input
 (** The type for input abstractions. *)
 
-
 val make_input : ?enc:encoding option -> ?strip:bool -> 
-  ?ns:(string -> string option) -> ?entity: (string -> string option) ->
-  source -> input
+                 ?ns:(string -> string option) -> 
+		 ?entity: (string -> string option) -> source -> input
 (** Returns a new input abstraction reading from the given source.
     {ul 
     {- [enc], character encoding of the document, {{:#inenc} details}. 
@@ -147,17 +139,17 @@ val make_input : ?enc:encoding option -> ?strip:bool ->
        {{:#inentity} details}. Default returns always [None].}} *)
 
 val input : input -> signal
-(** Inputs a signal. Repeated invocation of the function
-    with the same input abstraction will generate a {{:#TYPEsignal}valid} 
-    sequence of signals or an 
-    {!Error} is raised. Furthermore there will be no two consecutive [`Data]
-    signals in the sequence.
+(** Inputs a signal. Repeated invocation of the function with the same
+    input abstraction will generate a {{:#TYPEsignal}valid} sequence
+    of signals or an {!Error} is raised. Furthermore there will be no
+    two consecutive [`Data] signals in the sequence and their string
+    is always non empty. After a valid sequence was input another may 
+    be input see {!eoi} and {{:#iseq}details}.
 
-    {b Raises} {!Error} on input errors. 
-*)
+    {b Raises} {!Error} on input errors. *)
 
 val input_tree : el:(tag -> 'a list -> 'a) -> data:(string -> 'a)  -> 
-  input -> 'a
+                 input -> 'a
 (** If the next signal is a :
     {ul
     {- [`Data] signal, inputs it and invokes [data] with the character data.}
@@ -168,43 +160,37 @@ val input_tree : el:(tag -> 'a list -> 'a) -> data:(string -> 'a)  ->
       [`El_start] tag and the result of the callback invocation for the 
       element's children.}
     {- [data], is called on each [`Data] signals with the character data. 
-      This function won't be called twice consecutively.}}}
+      This function won't be called twice consecutively and won't 
+      be called with the empty string.}}}
     {- Other signals, raises [Invalid_argument].}}
 
-    {b Raises} {!Error} on input errors and [Invalid_argument].
-*)
+    {b Raises} {!Error} on input errors and [Invalid_argument]
+      if the next signal is not [`El_start] or [`Data]. *)
 
 val input_doc_tree : el:(tag -> 'a list -> 'a) -> data:(string -> 'a) -> 
-input -> (dtd * 'a)
+                     input -> (dtd * 'a)
 (** Same as {!input_tree} but reads a complete {{:#TYPEsignal}valid}  
     sequence of signals. 
 
-    {b Raises} {!Error} on input errors.
-*)
+    {b Raises} {!Error} on input errors and [Invalid_argument]
+     if the next signal is not [`Dtd]. *)
     
-
 val peek : input -> signal
 (** Same as {!input} but doesn't remove the signal from the sequence. 
 
-    {b Raises} {!Error} on input errors.
-*)
+    {b Raises} {!Error} on input errors. *)
 
 val eoi : input -> bool
-(** After a [`Doc_end] signal was input, [false] if a new [`Doc_start] 
-    signal can be parsed. Note that this consume input beyond 
-    the closing '>' of the previous document's
-    root element. 
-
-    {b Raises} {!Error} on input errors.
-*)
+(** Returns [true] if the end of input is reached. See {{:#iseq}details}.
+ 
+    {b Raises} {!Error} on input errors. *)
 
 val pos : input -> pos 
 (** Current position in the input abstraction. *)
 
-
 (** {1 Output} *)
 
-type 'a frag = [ `El of tag * 'a list | `D of string ]
+type 'a frag = [ `El of tag * 'a list | `Data of string ]
 (** The type for deconstructing data structures of type ['a]. *)
 
 type dest = [ `Channel of out_channel | `Buffer of Buffer.t | 
@@ -215,12 +201,12 @@ type dest = [ `Channel of out_channel | `Buffer of Buffer.t |
 type output
 (** The type for output abstractions. *)
 
-
 val make_output : ?nl:bool -> ?indent:int option -> 
-  ?ns_prefix:(string -> string option) -> dest -> output
+                  ?ns_prefix:(string -> string option) -> dest -> output
 (** Returns a new output abstraction writing to the given destination.
     {ul 
-    {- [nl], if [true] a newline is output when the [`Doc_end] signal is output.
+    {- [nl], if [true] a newline is output when the root's element [`El_end] 
+     signal is output.
     Defaults to [false].}
     {- [indent], identation behaviour, see {{:#outindent} details}. Defaults to
       [None].}
@@ -229,7 +215,8 @@ val make_output : ?nl:bool -> ?indent:int option ->
 
 
 val output : output -> signal -> unit
-(** Outputs a signal.
+(** Outputs a signal. After a valid sequence of signals was 
+    output a new valid sequence can be output.
 
     {b Raises} [Invalid_argument] if the resulting signal sequence on
     the output abstraction is not {{:#TYPEsignal}valid} or if a
@@ -247,11 +234,165 @@ val output_doc_tree : ('a -> 'a frag) -> output -> (dtd * 'a) -> unit
 
     {b Raises} see {!output}. *)
 
+(** {1:sto Functorial interface} 
+
+    {!Make} allows client to specify a types for strings and
+    internal buffers. This can be used to process the character stream for 
+    example to normalize unicode characters, to convert
+    to a custom encoding or to perform hash-consing. *)
+
+type std_string = string
+type std_buffer = Buffer.t
+
+(** Input signature for strings. *)
+module type String = sig
+  
+  type t
+  (** The type for strings. *)
+
+  val empty : t
+  (** The empty string. *)
+	
+  val length : t -> int
+  (** Returns the length of the string. *)
+	
+  val append : t -> t -> t
+  (** Concatenates two strings. *)
+
+  val lowercase : t -> t
+  (** New string with uppercase letter translated
+      to lowercase (correctness is only needed for ASCII code points). *)
+
+  val iter : (int -> unit) -> t -> unit
+  (** Iterates over the unicode 
+      {{:http://www.unicode.org/glossary/#code_point}code point}
+      of the given string. *)
+
+  val of_string : std_string -> t
+  (** String from an OCaml string. *)
+
+  val to_utf8_string : t -> std_string
+  (** UTF-8 encoded OCaml string from the string. *)
+
+  val compare : t -> t -> int
+  (** String comparison. *)
+end
+
+(** Input signature for internal buffers. *)
+module type Buffer = sig
+
+  exception Full
+  (** Raised if the buffer cannot be grown *)
+
+  type string
+  (** The type for strings. *)
+	
+  type t 
+  (** The type for buffers. *)
+	  
+  val create : int -> t
+  (** Creates a buffer of the given size. *)
+
+  val add_uchar : t -> int -> unit
+  (** Adds the given (guaranteed valid) unicode
+      {{:http://www.unicode.org/glossary/#code_point}code point} to a
+      buffer. 
+
+      {b Raises} {!Full} if the buffer cannot be grown. *)
+
+  val clear : t -> unit
+  (** Clears the buffer. *)
+
+  val contents : t -> string
+  (** Returns the buffer contents. *)
+  
+  val length : t -> int
+  (** Returns the number of characters contained in the buffer. *)
+end
+
+(** Output signature of {!Make}. *)
+module type S = sig 
+  
+  (** {1 Basic types and values} *)  
+
+  type string 
+
+  type encoding = [ 
+    | `UTF_8 | `UTF_16 | `UTF_16BE | `UTF_16LE | `ISO_8859_1| `US_ASCII ]
+  type dtd = string option
+  type name = string * string 
+  type attribute = name * string
+  type tag = name * attribute list
+  type signal = [ `Dtd of dtd | `El_start of tag | `El_end | `Data of string ]
+	
+  val ns_xml : string 
+  val ns_xmlns : string
+      
+  (** {1 Input} *)  
+
+  type pos = int * int 
+  type error = [
+    | `Max_buffer_size			
+    | `Unexpected_eoi
+    | `Malformed_char_stream
+    | `Unknown_encoding of string
+    | `Unknown_entity_ref of string				 
+    | `Unknown_ns_prefix of string				
+    | `Illegal_char_ref of string 
+    | `Illegal_char_seq of string 
+    | `Expected_char_seqs of string list * string
+    | `Expected_root_element ]
+	
+  exception Error of pos * error
+  val error_message : error -> string
+
+  type source = [ 
+  | `Channel of in_channel 
+  | `String of int * std_string
+  | `Fun of (unit -> int) ]
+
+  type input
+
+  val make_input : ?enc:encoding option -> ?strip:bool -> 
+                   ?ns:(string -> string option) -> 
+		   ?entity: (string -> string option) -> source -> input
+
+  val input : input -> signal
+
+  val input_tree : el:(tag -> 'a list -> 'a) -> data:(string -> 'a)  -> 
+                   input -> 'a
+
+  val input_doc_tree : el:(tag -> 'a list -> 'a) -> data:(string -> 'a) -> 
+                       input -> (dtd * 'a)
+    
+  val peek : input -> signal
+  val eoi : input -> bool
+  val pos : input -> pos 
+
+  (** {1 Output} *)
+
+  type 'a frag = [ `El of tag * 'a list | `Data of string ]
+  type dest = [ 
+    | `Channel of out_channel | `Buffer of std_buffer | `Fun of (int -> unit) ]
+
+  type output
+  val make_output : ?nl:bool -> ?indent:int option -> 
+                    ?ns_prefix:(string -> string option) -> dest -> output
+	
+  val output : output -> signal -> unit
+  val output_tree : ('a -> 'a frag) -> output -> 'a -> unit
+  val output_doc_tree : ('a -> 'a frag) -> output -> (dtd * 'a) -> unit   
+end
+
+(** Functor building streaming XML IO with the given strings and buffers. *)
+module Make (String : String) (Buffer : Buffer with type string = String.t) : S
+with type string = String.t
+
 (** {1:io Features and limitations}
     
     The module assumes strings are immutable, thus strings
-    you give or receive {e during} the input and output process must not
-    be modified.
+    the client gives or receives {e during} the input and output process 
+    must not be modified.
     {2:input Input}
     {3:inenc Encoding}    
 
@@ -265,12 +406,11 @@ val output_doc_tree : ('a -> 'a frag) -> output -> (dtd * 'a) -> unit
     the library are {b always} UTF-8 encoded (unless you use the functor). 
     
     The encoding can be specified explicitly using the optional
-    argument [enc]. Otherwise the parser uses the encoding specified
-    in the {{:http://www.w3.org/TR/REC-xml/#NT-XMLDecl} XML
-    declaration}.  If there is no such declaration, UTF-16 is used
-    provided there is an UTF-16 encoded
+    argument [enc]. Otherwise the parser uses UTF-16 if there is a
     {{:http://www.unicode.org/unicode/faq/utf_bom.html#BOM}BOM} at the
-    beginning of the document. Otherwise UTF-8 is assumed.
+    beginning of the document. If there is no BOM it uses the encoding
+    specified in the {{:http://www.w3.org/TR/REC-xml/#NT-XMLDecl} XML
+    declaration}. Finally, if there is no XML declaration UTF-8 is assumed.
     {3:inwspace White space handling}
 
     The parser performs
@@ -284,10 +424,10 @@ val output_doc_tree : ('a -> 'a frag) -> output -> (dtd * 'a) -> unit
     argument. If [strip] is [true], character data is treated like
     attribute data, white space before and after elements is removed
     and any white space is collapsed and transformed to a single [' ']
-    space character, except if the data is under the scope of a
-    {e xml:space='preserve'} attribute.  If [strip] is [false]
-    all white space data is preserved as present in the document
-    (however all kinds of
+    space character, except if the data is under the scope of a {e
+    xml:space} attribute whose value is {e preserve}.  If [strip] is
+    [false] all white space data is preserved as present in the
+    document (however all kinds of
     {{:http://www.w3.org/TR/REC-xml/#sec-line-ends}line ends} are
     translated to the single character ['\n']).  {3:inns Namespaces}
 
@@ -309,7 +449,7 @@ val output_doc_tree : ('a -> 'a frag) -> output -> (dtd * 'a) -> unit
     prefixes by documents, the parser does not report errors on violations 
     of the {i must} constraints listed in
     {{:http://www.w3.org/TR/xml-names11/#xmlReserved}this paragraph}. 
-    {3:inentity Entity references}
+    {3:inentity Character and entity references}
 
     {{:http://www.w3.org/TR/REC-xml/#dt-charref}Character references}
     and {{:http://www.w3.org/TR/REC-xml/#sec-predefined-ent}predefined
@@ -319,14 +459,32 @@ val output_doc_tree : ('a -> 'a frag) -> output -> (dtd * 'a) -> unit
     replacement character data.  The replacement data is {e not}
     analysed for further references, it is added to the data as such
     modulo white space stripping. If [entity] returns [None] the error
-    [`Unknown_entity_ref] is returned.{3:inmisc Miscellaneous}
+    [`Unknown_entity_ref] is returned.    
+    {3:iseq Sequences of documents}
+
+    When a valid sequence of signals is input, no data is consumed beyond
+    the closing ['>'] of the document's root element. 
+
+    If you want
+    to parse a document as {{:http://www.w3.org/TR/REC-xml/#NT-document}defined}
+    in the XML specification, call {!eoi} after a valid sequence of signals, 
+    it must return
+    [true]. If you expect another document on the same input 
+    abstraction a new a new valid sequence of signals can be
+    {!input}. Use {!eoi} to check if a document follows (this may
+    consume data). 
+
+    Invoking {!eoi} after a valid sequence of signals skips
+    whitespaces, comments and processing instructions until it gets to
+    either an {{:http://www.w3.org/TR/REC-xml/#NT-XMLDecl} XML
+    declaration} or a {{:http://www.w3.org/TR/REC-xml/#dt-doctype}DTD}
+    or the start of a new element or the end of input (in which case
+    {!eoi} returns [true]).  If there is a new document but there is no
+    XML declaration or the declaration specifies UTF-16, the same
+    encoding as for the previous document is used.
+
+    {3:inmisc Miscellaneous}
     {ul
-    {- When a valid sequence of signals ends with a [`Doc_end], no
-       data is consumed beyond the closing
-       ['>'] of the document's root element. If you expect another
-       document after, you can input a new valid sequence of signals with 
-       the same input 
-       abstraction, see {!Xmlm.eoi}.}
     {- Parses the more liberal and simpler XML 1.1 
     {{:http://www.w3.org/TR/xml11/#NT-Name}Name} definition (minus [':'] because
     of namespaces).}
@@ -349,7 +507,7 @@ val output_doc_tree : ('a -> 'a frag) -> output -> (dtd * 'a) -> unit
     {3:outenc Encoding} 
 
     Outputs only {{:http://www.faqs.org/rfcs/rfc3629.html} UTF-8}
-    encoded documents (unless you use the functor). 
+    encoded documents (even if you use the functor). 
     Strings given to output functions {b must be}
     UTF-8 encoded, no checks are performed.
     {3:outns Namespaces}
@@ -391,11 +549,15 @@ let ex_ns = (Xmlm.ns_xmlns, "ex"), "http://example.org/ex"]}
        (for empty elements [`El_start] and [`El_end] are collapsed on a single
        line) and nested elements are indented with [c] space
        characters.
+    {3:oseq Sequences of documents} 
+
+    After a valid sequence of signals was output, the output
+    abstraction can be reused to output a new valid sequence of
+    signals.
+
     {3:outmisc Miscellaneous}
     {ul
-    {- An output of [`Doc_end] does not flush the output destination.}
-    {- After a [`Doc_end] signal, the output abstraction
-       can be reused to output a  new valid sequence of signals.}
+    {- Output on a channel destination does not flush it.}
     {- In attribute and character data you provide, markup 
        delimiters ['<'],['>'],['&'], and ['\"'] are 
         automatically escaped to 
@@ -422,30 +584,54 @@ let ex_ns = (Xmlm.ns_xmlns, "ex"), "http://example.org/ex"]}
     Sequential processing has the advantage that you don't need to get
     the whole document tree in memory to process it.
 
-    The following function reads sequences of documents on the 
+    The following function reads a {e single} document on an
+    input channel and outputs it.
+{[let id ic oc = 
+  let i = Xmlm.make_input (`Channel ic) in 
+  let o = Xmlm.make_output (`Channel oc) in 
+  let rec pull i o depth = 
+    Xmlm.output o (Xmlm.peek i);
+    match Xmlm.input i with 
+    | `El_start _ -> pull i o (depth + 1)
+    | `El_end -> if depth = 1 then () else pull i o (depth - 1)
+    | `Data _ -> pull i o depth 
+    | `Dtd _ -> assert false
+  in
+  Xmlm.output o (Xmlm.input i); (* `Dtd *)
+  pull i o 0;
+  if not (Xmlm.eoi i) then invalid_arg "document not well-formed"]}
+    The following function reads a {e sequence} of documents on an
+    input channel and outputs it.
+{[let id_seq ic oc = 
+  let i = Xmlm.make_input (`Channel ic) in 
+  let o = Xmlm.make_output (`Channel oc) in 
+  while not (Xmlm.eoi i) do Xmlm.output o (Xmlm.input i) done]}
+    The following function reads a {e sequence} of documents on the 
     input channel. In each document's tree it prunes non root elements
     whose name belongs to [prune_list].
 {[let prune_docs prune_list ic oc = 
   let i = Xmlm.make_input (`Channel ic) in
   let o = Xmlm.make_output (`Channel oc) in
   let copy i o = Xmlm.output o (Xmlm.input i) in
-  let process i o = 
-    let rec skip i n = match Xmlm.input i with
-    | `El_start _ -> skip i (n + 1)
-    | `El_end -> if n = 1 then () else skip i (n - 1)
+  let prune (name, _) = List.mem name prune_list in
+  let process i o d = 
+    let rec skip i d = match Xmlm.input i with
+    | `El_start _ -> skip i (d + 1)
+    | `El_end -> if d = 1 then () else skip i (d - 1)
     | s -> skip i n
     in
-    let prune (name, _) = List.mem name prune_list in
     match Xmlm.peek i with 
-    | `El_start tag when prune tag -> skip i 0; process i o
-    | s -> copy i o; process i o
+    | `El_start tag when prune tag -> skip i 0; process i o l
+    | `El_start _ -> copy i o; process i o (l + 1)
+    | `El_end -> copy i o; if l = 1 then () else process i o (l - 1)
+    | `Data _ -> copy i o; process i o l
+    | `Dtd _ -> assert false
   in
   let rec docs i o = 
-    copy i o; (* `Doc_start *)
-    copy i o; (* root `El_start *)
-    process ic oc;
-    copy i o; (* root `El_end *)
-    copy i o; (* `Doc_end *)
+    copy i o; (* `Dtd *)
+    copy i o; (* root start *)
+    process i o 0;
+    copy i o; (* root end *)
     if Xmlm.eoi i then () else docs i o
   in
   docs i o]}
@@ -455,8 +641,8 @@ let ex_ns = (Xmlm.ns_xmlns, "ex"), "http://example.org/ex"]}
     A document's sequence of signals can be easily converted
     to an arborescent data structure. Assume your trees are defined by :
     {[type tree = E of Xmlm.tag * tree list | D of string]}
-    The following functions input and output xml documents as value of type
-    [tree].
+    The following functions input/output xml documents from/to the abstractions 
+    as value of type [tree].
 {[let in_tree i = 
   let e tag childs = E (tags, childs)  in
   let data d = D d in
@@ -469,17 +655,17 @@ let out_tree o t =
   in
   Xmlm.output_doc_tree frag o t]} 
 
-{2:exrow Tabular data processing}
+    {2:exrow Tabular data processing}
 
-We show how to process XML data that represents tabular data 
-(some people like do that).
+    We show how to process XML data that represents tabular data (some
+    people like do that).
 
-The file we need to deal with represents nominal data about
-{{:http://www.w3.org/}W3C bureaucrats}There are no namespaces and
-attributes are ignored. The element structure of the document is as
-follows :
-{ul {- <list>
-    {ul {- <bureaucrat> represents a W3C bureaucrat
+    The file we need to deal with represents nominal data about
+    {{:http://www.w3.org/}W3C bureaucrats}. There are no namespaces
+    and attributes are ignored. The element structure of the document
+    is :
+    {ul {- <list>
+     {ul {- <bureaucrat> represents a W3C bureaucrat
            (zero or more).
 
         A bureaucrat contains the following elements, in order.
@@ -492,17 +678,17 @@ follows :
             {- <tr> (zero or more, string), technical reports he
                worked on.}}}}}}
 
-In OCaml we represent a W3C bureaucrat by this type :
+    In OCaml we represent a W3C bureaucrat by this type :
 {[type w3c_bureaucrat = { 
     name : string; 
     surname : string; 
     honest : bool; 
     obfuscation_level : float;
     trs : string list; }]}
-The following functions input and output W3C bureaucrats as lists of values
-of type [w3c_bureaucrat]. Input abstractions must have [strip] set to [true] 
-for this code to work robustly.
-{[let in_w3c_bureaucrats i = 
+    The following functions input and output W3C bureaucrats as lists
+    of values of type [w3c_bureaucrat].
+{[let in_w3c_bureaucrats src = 
+  let i = Xmlm.make_input ~strip:true src in
   let tag n = ("", n), [] in
   let error () = invalid_arg "parse error" in
   let accept s i = if Xmlm.input i = s then () else error () in
@@ -538,15 +724,16 @@ for this code to work robustly.
     with
     | Failure _ -> error () (* float_of_string *)
   in
-  accept (`Doc_start None) i;
+  accept (`Dtd None) i;
   accept (`El_start (tag "list")) i;
   let bl = i_list i_bureaucrat [] i in
   accept (`El_end) i;
-  accept (`Doc_end) i;
+  if not (Xmlm.eoi i) then invalid_arg "more than one document";
   bl
 
-let out_w3c_bureaucrats o bl = 
+let out_w3c_bureaucrats dst bl = 
   let tag n = ("", n), [] in
+  let o = Xmlm.make_output dst in
   let out = Xmlm.output o in
   let o_el n d = 
     out (`El_start (tag n)); 
@@ -562,11 +749,10 @@ let out_w3c_bureaucrats o bl =
      List.iter (o_el "tr") b.trs;
     out `El_end
   in
-  out (`Doc_start None);
+  out (`Dtd None);
   out (`El_start (tag "list"));
    List.iter o_bureaucrat bl;
-  out (`El_end);
-  out (`Doc_end)]}
+  out (`El_end)]}
 *)
 
 (*----------------------------------------------------------------------------

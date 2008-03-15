@@ -27,10 +27,8 @@ action ()
   case $1 in
     module) 
       ocb $PROJECTNAME.cmx $PROJECTNAME.cmo ;;
-    test) 
+    xmltrip) 
       ocb xmltrip.native ;;
-    cursor)
-      ocb cursor.cmx cursor.cmo ;;
     doc)
       ocb $PROJECTNAME.cmi
       $OCAMLDOC -html -I src -colorize-code -d $DOCDIR src/$PROJECTNAME.mli ;;
@@ -45,7 +43,7 @@ action ()
       action clean
       rm -f $DOCDIR/*.html ;;
     *) 
-      echo "Unknown action $1";;
+      ocb $1;;
   esac;
 } 
 

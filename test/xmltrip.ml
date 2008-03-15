@@ -13,30 +13,56 @@ let apply f x ~finally y =
 
 let fail ((l, c), e) = failwith (str "%d:%d: %s" l c (Xmlm.error_message e))
 
-type tree = El of Xmlm.tag * tree list | D of string
+type tree = E of Xmlm.tag * tree list | D of string
 
-let input_tree = 
-  let el tag childs = El (tag, childs) in
-  let d data = D data in
-  Xmlm.input_tree ~el ~d
+let in_tree i = 
+  let el tag childs = E (tag, childs)  in
+  let data d = D d in
+  Xmlm.input_doc_tree ~el ~data i
 
-let output_tree = 
-  let fold = function 
-    | El (tag, childs) -> `El (tag, childs) 
-    | D d -> `D d 
+let out_tree o t = 
+  let frag = function
+  | E (tag, childs) -> `El (tag, childs) 
+  | D d -> `Data d 
   in
-  Xmlm.output_tree fold
+  Xmlm.output_doc_tree frag o t
+    
+let xml_parse tree enc strip entity ns ic () =                (* parse only *)
+  let i = Xmlm.make_input ~enc ~strip ~entity ~ns (`Channel ic) in
+  let doc i = 
+    if tree then ignore (in_tree i) else
+    begin 
+      let rec pull i l = match Xmlm.input i with
+      | `El_start _ -> pull i (l + 1)
+      | `El_end -> if l = 1 then () else pull i (l - 1)
+      | `Data _ -> pull i l 
+      | `Dtd _ -> assert false
+      in
+      ignore (Xmlm.input i); (* `Dtd *)
+      pull i 0;
+    end
+  in
+  try while not (Xmlm.eoi i) do doc i done 
+  with Xmlm.Error (p, e) -> fail (p, e)
 
-let xml_parse tree enc strip entity ic () =                    (* parse only *)
-  let i = Xmlm.input_of_channel ic in
-  if tree then 
-    match input_tree ~enc ~strip ~entity i with
-    | `Success _ -> () | `Error e -> fail e
-  else
-    match Xmlm.input ~enc ~strip ~entity () i with
-  | `Success () -> () | `Error e -> fail e
+let xml_signals _ enc strip entity ns ic _ =           (* output signals *)
+  let pr s = Printf.fprintf stdout s in
+  let i = Xmlm.make_input ~enc ~strip ~entity ~ns (`Channel ic) in 
+  let out_signal s = match s with
+  | `Dtd None -> pr "`DTD None\n"
+  | `Dtd Some d -> pr "`DTD Some(%S)\n" d
+  | `El_start (n, atts) -> 
+      let pr_name (p, l) =  if p <> "" then pr "%s:%s" p l else pr "%s" l in
+      let pr_att (n, v) = pr "("; pr_name n; pr ", %S); " v in
+      pr "`El_start (";
+      pr_name n; pr ", ["; List.iter pr_att atts; pr "])\n"
+  | `El_end -> pr "`El_end\n"
+  | `Data d -> pr "`Data (%S)\n" d
+  in
+  try while not (Xmlm.eoi i) do out_signal (Xmlm.input i); done
+  with Xmlm.Error (p, e) -> fail (p, e)
   
-let xml_outline tree enc strip entity ic oc =               (* ascii outline *)
+let xml_outline tree enc strip entity ns ic oc =            (* ascii outline *)
   let pr s = Printf.fprintf oc s in
   let pr_dtd dtd = match dtd with Some s -> pr "+-DTD %S\n" s | _ -> () in
   let pr_depth d = for k = 1 to d do pr "| " done in
@@ -46,49 +72,62 @@ let xml_outline tree enc strip entity ic oc =               (* ascii outline *)
   let pr_tag d (n, atts) = 
     pr_depth d; pr "+-%a\n" pr_name n; List.iter (pr_att d) atts 
   in
-  let i = Xmlm.input_of_channel ic in
-  if tree then 
-    let rec pr_tree d = function
-      | (n :: next) :: path -> 
-	  begin match n with
-	  | El (tag, childs) -> 
-	      pr_tag d tag; pr_tree (d+1) (childs :: next :: path)
-	  | D data -> 
-	      pr_data d data; pr_tree d (next :: path)
-	  end
-      | [] :: [] -> ()
-      | [] :: path -> pr_tree (d - 1) path
-      | [] -> assert false
-    in
-    match input_tree ~enc ~strip ~entity ~prolog:pr_dtd i with
-    | `Success (Some t) -> pr_tree 0 [ [ t ] ]; flush oc
-    | `Error e -> fail e
-    | `Success None -> assert false (* no pruning *)
-  else
-    let s tag depth = pr_tag depth tag; depth + 1 in
-    let d data depth = pr_data depth data; depth in
-    let e _ depth = depth - 1 in
-    match Xmlm.input ~enc ~strip ~entity ~prolog:pr_dtd ~s ~d ~e 0 i with
-    | `Success _ -> flush oc
-    | `Error e -> fail e
+  let i = Xmlm.make_input ~enc ~strip ~entity ~ns (`Channel ic) in
+  let doc i = 
+    if tree then 
+      begin 
+	let rec pr_tree d = function
+	  | (n :: next) :: path -> 
+	      begin match n with
+	      | D data -> pr_data d data; pr_tree d (next :: path)
+	      | E (tag, childs) -> 
+		  pr_tag d tag; pr_tree (d+1) (childs :: next :: path)
+	      end
+	  | [] :: path -> if d = 0 then () else pr_tree (d - 1) path
+	  | _ -> assert false
+	in
+	let dtd, t = in_tree i in
+	pr_dtd dtd;
+	pr_tree 0 ([t] :: [])
+      end
+    else
+      begin 
+	let rec pull i l = match Xmlm.input i with
+	| `El_start tag -> pr_tag l tag; pull i (l + 1)
+	| `El_end -> if l = 1 then () else pull i (l - 1)
+	| `Data d -> pr_data l d; pull i l
+	| `Dtd _ -> assert false 
+	  in
+	pr_dtd (match Xmlm.input i with `Dtd d -> d | _ -> assert false);
+	pull i 0;
+      end;
+    flush oc
+  in
+  try while not (Xmlm.eoi i) do doc i done
+  with Xmlm.Error (p, e) -> fail (p, e)
 
-let xml_xml indent tree enc strip entity ic oc =                (* xml trip *)
+let xml_xml indent tree enc strip entity ns ic oc =              (* xml trip *)
   let nl = (indent = None) in
-  let i = Xmlm.input_of_channel ic in
-  let o = Xmlm.output_of_channel ~indent oc in
-  let prolog = Xmlm.output_prolog o in
-  if tree then 
-    match input_tree ~enc ~strip ~entity ~prolog i with
-    | `Success (Some t) -> output_tree o t; Xmlm.output_finish ~nl o 
-    | `Error e -> fail e
-    | `Success None -> assert false (* no pruning *)
-  else
-    let d data _ = Xmlm.output_signal o (`D data) in 
-    let s tag _ = Xmlm.output_signal o (`S tag) in
-    let e _ _ = Xmlm.output_signal o `E in
-    match Xmlm.input ~enc ~strip ~entity ~prolog ~d ~s ~e () i with
-    | `Success () -> Xmlm.output_finish ~nl o
-    | `Error e -> fail e
+  let i = Xmlm.make_input ~enc ~strip ~ns ~entity (`Channel ic) in
+  let o = Xmlm.make_output ~nl ~indent ~ns_prefix:ns (`Channel oc) in
+  let doc i o = 
+    if tree then (out_tree o (in_tree i)) else
+    begin 
+      let rec pull i o depth = 
+	let s = Xmlm.input i in
+	Xmlm.output o s;
+	match s with 
+	| `El_start _ -> pull i o (depth + 1)
+	| `El_end -> if depth = 1 then () else pull i o (depth - 1)
+	| `Data _ -> pull i o depth 
+	| `Dtd _ -> assert false
+      in
+      Xmlm.output o (Xmlm.input i); (* `Dtd *)
+      pull i o 0
+    end
+  in
+  try while not (Xmlm.eoi i) do doc i o done 
+  with Xmlm.Error (p, e) -> fail (p, e)
 
 let with_inf f inf v = 
   try
@@ -107,25 +146,32 @@ let with_outf f ic outf =
   with
   | Sys_error e -> pr_err (str " %s" e)
 
-let entity_fun ename xhtml = 
-  if not xhtml then (if ename then fun x -> Some x else fun x -> None) else
+let entity_fun eref xhtml = 
+  if not xhtml then (if eref then fun x -> Some x else fun x -> None) else
   let h = Hashtbl.create 270 in
   List.iter (fun (e, ustr) -> Hashtbl.add h e ustr) Xhtml.entities;
-  if ename then (fun x -> try Some (Hashtbl.find h x) with Not_found -> Some x)
+  if eref then (fun x -> try Some (Hashtbl.find h x) with Not_found -> Some x)
   else (fun x -> try Some (Hashtbl.find h x) with Not_found -> None)
         
-let process tree enc strip ename xhtml parse_only outline indent suffix files = 
-  let entity = entity_fun ename xhtml in
+let process signals tree enc strip eref ns xhtml parse_only outline indent 
+            suffix files = 
+  let entity = entity_fun eref xhtml in
+  let ns = if ns then fun x -> Some x else fun x -> None in
   let f = 
     if parse_only then 
-      fun inf -> with_inf (xml_parse tree enc strip entity) inf ()
+      fun inf -> with_inf (xml_parse tree enc strip entity ns) inf ()
     else 
       let outf inf =  
 	if inf = "" || suffix = "" then "" (* stdout *) else 
 	str "%s.%s" inf suffix 
       in
-      let f = if outline then xml_outline else (xml_xml indent) in
-      fun inf -> with_inf (with_outf (f tree enc strip entity)) inf (outf inf)
+      let f = 
+	if outline then xml_outline else 
+	if signals then xml_signals else
+	(xml_xml indent) 
+      in
+      fun inf -> 
+	with_inf (with_outf (f tree enc strip entity ns)) inf (outf inf)
   in
   List.iter f files
 
@@ -146,31 +192,37 @@ let main () =
          Reads xml files and outputs them on stdout.\n\
          Options:" exec 
   in
-  let tree = ref false in
-  let encoding = ref "" in
+  let enc = ref "" in
   let strip = ref false in
-  let ename = ref false in
+  let ns = ref false in
+  let eref = ref false in
   let xhtml = ref false in
   let parse_only = ref false in
+  let tree = ref false in
+  let signals = ref false in
   let outline = ref false in
   let indent = ref false in
   let suffix = ref "" in
   let files = ref [] in
   let add_file s = files := s :: !files in
   let options = [
-    "-t", Arg.Set tree, 
-    "build document tree in memory.";
-    "-enc", Arg.Set_string encoding, 
+    "-enc", Arg.Set_string enc, 
     "<enc>, use specified encoding, utf-8, utf-16, utf-16be, utf-16le,\n\
     \   iso-8859-1, ascii (otherwise guesses).";
     "-strip", Arg.Set strip, 
     "strip and collapse white space in character data.";
-    "-ename", Arg.Set ename,
-    "replace unknown entity references by their name (otherwise fails).";
+    "-ns", Arg.Set ns,
+    "replace unbound namespaces prefixes by themselves (on input and ouput).";
+    "-eref", Arg.Set eref,
+    "replace unknown entity references by their name.";
     "-xhtml", Arg.Set xhtml,
     "resolve XHTML character entities.";
     "-p", Arg.Set parse_only, 
     "parse only, no output.";
+    "-t", Arg.Set tree, 
+    "build document tree in memory.";
+    "-signals", Arg.Set signals,
+    "outputs the stream of signals instead of xml (excludes -t).";
     "-ot", Arg.Set outline, 
     "output document ascii outline instead of xml.";
     "-indent", Arg.Set indent,
@@ -180,10 +232,10 @@ let main () =
   in
   Arg.parse options add_file usage;
   let files = match (List.rev !files) with [] -> ["" (* stdin *) ] | l -> l in
-  let enc = encoding_of_str !encoding in
+  let enc = encoding_of_str !enc in
   let indent = if !indent then Some 2 else None in
-  process !tree enc !strip !ename !xhtml !parse_only !outline indent !suffix 
-    files
+  process !signals !tree enc !strip !eref !ns !xhtml !parse_only 
+    !outline indent !suffix files
 
 let () = main ()
 
