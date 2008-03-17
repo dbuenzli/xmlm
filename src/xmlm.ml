@@ -23,9 +23,9 @@ module type String = sig
 end
       
 module type Buffer = sig
-  exception Full
   type string
   type t 
+  exception Full
   val create : int -> t
   val add_uchar : t -> int -> unit
   val clear : t -> unit
@@ -598,54 +598,6 @@ struct
       end
     in
     aux i [] []           (* Returns a list of bound prefixes and attributes *)
-	    
-  let rec skip_comment i =                    (* {Comment}, '<!--' was eaten *)
-    while (i.c <> u_minus) do nextc i done;
-    nextc i;
-    if i.c <> u_minus then skip_comment i else 
-    begin 
-      nextc_eof i;
-      if i.c <> u_gt then err_expected_chars i [ u_gt ];
-      nextc_eof i
-    end
-      
-  let rec skip_pi i =                          (* {PI}, '<?' qname was eaten *)
-    while (i.c <> u_qmark) do nextc i done;
-    nextc i;
-    if i.c <> u_gt then skip_pi i else nextc_eof i
-      
-  let p_chardata addc i =           (* {CharData}* ({Reference}{Chardata})* *)
-    while (i.c <> u_lt) do 
-      if i.c = u_amp then String.iter (addc i) (p_reference i)
-      else if i.c = u_rbrack then 
-	begin 
-	  addc i i.c;
-	  nextc i;
-	  if i.c = u_rbrack then begin 
-	    addc i i.c;
-	    nextc i;                                   (* detects ']'*']]>' *)
-	    while (i.c = u_rbrack) do addc i i.c; nextc i done;
-	    if i.c = u_gt then err i (`Illegal_char_seq (str "]]>"));
-	  end
-	end
-      else
-	(addc i i.c; nextc i)
-    done
-
-  let rec p_cdata addc i =                               (* {CData} {CDEnd} *)
-    try while (true) do 
-      if i.c = u_rbrack then begin
-	nextc i;
-	while i.c = u_rbrack do
-	  nextc i;
-	  if i.c = u_gt then (nextc i; raise Exit);
-	  addc i u_rbrack
-	done;
-	addc i u_rbrack;
-      end;
-      addc i i.c;
-      nextc i;
-    done with Exit -> ()
 
   let p_limit i =                                   (* Parses a markup limit *)
     i.limit <-
@@ -681,15 +633,63 @@ struct
 	else
 	  Stag (p_qname i)
       end
+	    
+  let rec skip_comment i =                    (* {Comment}, '<!--' was eaten *)
+    while (i.c <> u_minus) do nextc i done;
+    nextc i;
+    if i.c <> u_minus then skip_comment i else 
+    begin 
+      nextc i;
+      if i.c <> u_gt then err_expected_chars i [ u_gt ];
+      nextc_eof i
+    end
+      
+  let rec skip_pi i =                          (* {PI}, '<?' qname was eaten *)
+    while (i.c <> u_qmark) do nextc i done;
+    nextc i;
+    if i.c <> u_gt then skip_pi i else nextc_eof i
 
   let rec skip_misc i ~allow_xmlpi = match i.limit with          (* {Misc}* *)
   | Pi (p,l) when (str_empty p && str_eq n_xml (String.lowercase l)) -> 
-      if allow_xmlpi then () else err i (`Illegal_char_seq (str "<?xml"))
+      if allow_xmlpi then () else err i (`Illegal_char_seq l)
   | Pi _ -> skip_pi i; p_limit i; skip_misc i ~allow_xmlpi
   | Comment -> skip_comment i; p_limit i; skip_misc i ~allow_xmlpi
   | Text when is_white i.c -> 
       skip_white_eof i; p_limit i; skip_misc i ~allow_xmlpi
   | _ -> ()
+      
+  let p_chardata addc i =           (* {CharData}* ({Reference}{Chardata})* *)
+    while (i.c <> u_lt) do 
+      if i.c = u_amp then String.iter (addc i) (p_reference i)
+      else if i.c = u_rbrack then 
+	begin 
+	  addc i i.c;
+	  nextc i;
+	  if i.c = u_rbrack then begin 
+	    addc i i.c;
+	    nextc i;                                   (* detects ']'*']]>' *)
+	    while (i.c = u_rbrack) do addc i i.c; nextc i done;
+	    if i.c = u_gt then err i (`Illegal_char_seq (str "]]>"));
+	  end
+	end
+      else
+	(addc i i.c; nextc i)
+    done
+
+  let rec p_cdata addc i =                               (* {CData} {CDEnd} *)
+    try while (true) do 
+      if i.c = u_rbrack then begin
+	nextc i;
+	while i.c = u_rbrack do
+	  nextc i;
+	  if i.c = u_gt then (nextc i; raise Exit);
+	  addc i u_rbrack
+	done;
+	addc i u_rbrack;
+      end;
+      addc i i.c;
+      nextc i;
+    done with Exit -> ()
 	  
   let p_xml_decl i ~ignore_enc ~ignore_utf16 =                (* {XMLDecl}? *)
     let yes_no = [v_yes; v_no] in
@@ -698,45 +698,46 @@ struct
       let v = p_val i in 
       if not (List.exists (str_eq v) exp) then err_expected_seqs i exp v
     in
-    if i.limit = Pi (String.empty, n_xml) then begin
-      let v = skip_white i; p_ncname i in
-      if not (str_eq v n_version) then err_expected_seqs i [ n_version ] v;
-      p_val_exp i [v_version_1_0; v_version_1_1];
-      skip_white i;
-      if i.c <> u_qmark then begin
-	let n = p_ncname i in
-	if str_eq n n_encoding then begin
-	  let enc = String.lowercase (p_val i) in
-	  if not ignore_enc then begin 
-	    if str_eq enc v_utf_8 then i.uchar <- uchar_utf8 else
-	    if str_eq enc v_utf_16be then i.uchar <- uchar_utf16be else
-	    if str_eq enc v_utf_16le then i.uchar <- uchar_utf16le else
-	    if str_eq enc v_iso_8859_1 then i.uchar <- uchar_iso_8859_1 else
-	    if str_eq enc v_us_ascii then i.uchar <- uchar_ascii else
-	    if str_eq enc v_ascii then i.uchar <- uchar_ascii else
-	    if str_eq enc v_utf_16 then 
-	      if ignore_utf16 then () else (err i `Malformed_char_stream)
-                                           (* A BOM should have been found. *)
-	    else
-	      err i (`Unknown_encoding enc)
-	  end;
-	  skip_white i;
-	  if i.c <> u_qmark then begin 
-	    let n = p_ncname i in 
-	    if str_eq n n_standalone then p_val_exp i yes_no else
-	    err_expected_seqs i [ n_standalone; str "?>" ] n 
-	  end
-	end 
-	else if str_eq n n_standalone then
-	  p_val_exp i yes_no
-	else
-	  err_expected_seqs i [ n_encoding; n_standalone; str "?>" ] n
-      end;
-      skip_white i;
-      accept i u_qmark;
-      accept i u_gt;
-      p_limit i
-    end
+    match i.limit with
+    | Pi (p, l) when (str_empty p && str_eq l n_xml) ->  
+	let v = skip_white i; p_ncname i in
+	if not (str_eq v n_version) then err_expected_seqs i [ n_version ] v;
+	p_val_exp i [v_version_1_0; v_version_1_1];
+	skip_white i;
+	if i.c <> u_qmark then begin
+	  let n = p_ncname i in
+	  if str_eq n n_encoding then begin
+	    let enc = String.lowercase (p_val i) in
+	    if not ignore_enc then begin 
+	      if str_eq enc v_utf_8 then i.uchar <- uchar_utf8 else
+	      if str_eq enc v_utf_16be then i.uchar <- uchar_utf16be else
+	      if str_eq enc v_utf_16le then i.uchar <- uchar_utf16le else
+	      if str_eq enc v_iso_8859_1 then i.uchar <- uchar_iso_8859_1 else
+	      if str_eq enc v_us_ascii then i.uchar <- uchar_ascii else
+	      if str_eq enc v_ascii then i.uchar <- uchar_ascii else
+	      if str_eq enc v_utf_16 then 
+		if ignore_utf16 then () else (err i `Malformed_char_stream)
+                                             (* A BOM should have been found. *)
+	      else
+		err i (`Unknown_encoding enc)
+	    end;
+	    skip_white i;
+	    if i.c <> u_qmark then begin 
+	      let n = p_ncname i in 
+	      if str_eq n n_standalone then p_val_exp i yes_no else
+	      err_expected_seqs i [ n_standalone; str "?>" ] n 
+	    end
+	  end 
+	  else if str_eq n n_standalone then
+	    p_val_exp i yes_no
+	  else
+	    err_expected_seqs i [ n_encoding; n_standalone; str "?>" ] n
+	end;
+	skip_white i;
+	accept i u_qmark;
+	accept i u_gt;
+	p_limit i
+    | _ -> ()
 
   let p_dtd_signal i =(* {Misc}* {doctypedecl} {Misc}* *)
     skip_misc i ~allow_xmlpi:false;
@@ -805,7 +806,7 @@ struct
       if str_eq local n_xmlns then (ns_xmlns, n_xmlns), v else
       att (* default namespaces do not influence attributes. *)
     in
-    let strip = i.stripping in 
+    let strip = i.stripping in  (* save it here, p_attributes may change it. *) 
     let prefixes, atts = p_attributes i in
     i.scopes <- (n, prefixes, strip) :: i.scopes;
     `El_start ((expand_name i n), List.map expand_att atts)
@@ -876,7 +877,7 @@ struct
 	  skip_misc i ~allow_xmlpi:true;
 	  if i.c = u_eoi then true else 
 	  begin 
-	    p_xml_decl i ~ignore_enc:false ~ignore_utf16: true;
+	    p_xml_decl i ~ignore_enc:false ~ignore_utf16:true;
 	    i.peek <- p_dtd_signal i;
 	    false
 	  end
@@ -947,13 +948,13 @@ struct
 	outc : char -> unit;                            (* character output. *)
 	mutable last_el_start : bool;   (* True if last signal was `El_start *)
 	mutable scopes : (name * (string list)) list;
-                                             (* Element name and bound uris. *)
+                                       (* Qualified el. name and bound uris. *)
 	mutable depth : int; }                               (* Scope depth. *) 
 
   let err_prefix uri = "unbound namespace (" ^ uri ^ ")"
   let err_dtd = "dtd signal not allowed here"
   let err_el_start = "start signal not allowed here"
-  let err_el_end = "end signal without matching start signal."
+  let err_el_end = "end signal without matching start signal"
   let err_data = "data signal not allowed here"
 
   let make_output ?(nl = false) ?(indent = None) ?(ns_prefix = fun _ ->None) d =
@@ -1135,10 +1136,9 @@ module String = struct
 end
     
 module Buffer = struct
-  exception Full 
-
   type string = String.t
   type t = Buffer.t
+  exception Full 
   let create = Buffer.create
   let add_uchar b u =  
     try

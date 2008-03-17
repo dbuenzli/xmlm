@@ -8,15 +8,16 @@
 
     A well-formed sequence of {{:#TYPEsignal}signals} represents an
     {{:http://www.w3.org/TR/REC-xml}XML} document tree traversal in
-    depth first order. Input pulls a well-formed sequence of signals from a
-    data source and output pushes a well-formed sequence of signals to a
-    data destination.
-
-    The module has functions to construct/deconstruct custom
-    arborescent data structures from/to well-formed sequences of signals.
+    depth first order (this has nothing to do with XML
+    well-formedness). Input pulls a well-formed sequence of signals
+    from a data source and output pushes a well-formed sequence of
+    signals to a data destination. Functions are provided to easily 
+    transform sequences of signals to/from arborescent data structures.
 
     Consult the {{:#io}features and limitations} and {{:#ex}examples} 
     of use.
+
+    {e Version %%VERSION%%, %%EMAIL%% }
 
     {b References.}
 
@@ -28,7 +29,6 @@
     {e {{:http://www.w3.org/TR/xml-names11}Namespaces in XML 1.1 (2nd ed.)}},
     2006.
 
-    {b Version} %%VERSION%%, %%EMAIL%%
     {1 Basic types and values} *)
 
 (** The type for character encodings. For [`UTF_16], endianness is
@@ -144,7 +144,7 @@ val input : input -> signal
     of signals or an {!Error} is raised. Furthermore there will be no
     two consecutive [`Data] signals in the sequence and their string
     is always non empty. After a well-formed sequence was input another may 
-    be input see {!eoi} and {{:#iseq}details}.
+    be input, see {!eoi} and {{:#iseq}details}.
 
     {b Raises} {!Error} on input errors. *)
 
@@ -160,8 +160,8 @@ val input_tree : el:(tag -> 'a list -> 'a) -> data:(string -> 'a)  ->
       [`El_start] tag and the result of the callback invocation for the 
       element's children.}
     {- [data], is called on each [`Data] signals with the character data. 
-      This function won't be called twice consecutively and won't 
-      be called with the empty string.}}}
+      This function won't be called twice consecutively or with the empty 
+      string.}}}
     {- Other signals, raises [Invalid_argument].}}
 
     {b Raises} {!Error} on input errors and [Invalid_argument]
@@ -195,8 +195,9 @@ type 'a frag = [ `El of tag * 'a list | `Data of string ]
 
 type dest = [ `Channel of out_channel | `Buffer of Buffer.t | 
               `Fun of (int -> unit) ]
-(** The type for output destinations. For [`Fun] the function 
-    is called with the output {e bytes} as [int]s. *)
+(** The type for output destinations. For [`Buffer], the buffer won't
+    be cleared. For [`Fun] the function is called with the output {e
+    bytes} as [int]s. *)
 
 type output
 (** The type for output abstractions. *)
@@ -236,10 +237,10 @@ val output_doc_tree : ('a -> 'a frag) -> output -> (dtd * 'a) -> unit
 
 (** {1:sto Functorial interface} 
 
-    {!Make} allows client to specify a types for strings and
-    internal buffers. This can be used to process the character stream for 
-    example to normalize unicode characters, to convert
-    to a custom encoding or to perform hash-consing. *)
+    {!Make} allows client to specify types for strings and internal
+    buffers. Among other things this can be used to perform
+    hash-consing or to process the character stream, e.g. to normalize
+    unicode characters or to convert to a custom encoding. *)
 
 type std_string = string
 type std_buffer = Buffer.t
@@ -261,7 +262,8 @@ module type String = sig
 
   val lowercase : t -> t
   (** New string with uppercase letter translated
-      to lowercase (correctness is only needed for ASCII code points). *)
+      to lowercase (correctness is only needed for ASCII
+      {{:http://www.unicode.org/glossary/#code_point}code point}). *)
 
   val iter : (int -> unit) -> t -> unit
   (** Iterates over the unicode 
@@ -282,14 +284,14 @@ end
 (** Input signature for internal buffers. *)
 module type Buffer = sig
 
-  exception Full
-  (** Raised if the buffer cannot be grown *)
-
   type string
   (** The type for strings. *)
 	
   type t 
   (** The type for buffers. *)
+
+  exception Full
+  (** Raised if the buffer cannot be grown. *)
 	  
   val create : int -> t
   (** Creates a buffer of the given size. *)
@@ -418,19 +420,19 @@ with type string = String.t
     {{:http://www.w3.org/TR/REC-xml/#AVNormalize}attribute data
     normalization} on {e every} attribute data.  This means that
     attribute data does not have leading and trailling white space and that 
-    any white space is collapsed and transformed to a single [' '] space 
-    character.
+    any white space is collapsed and transformed to a single space 
+    character ([U+0020]).
 
     White space handling of character data depends on the [strip]
     argument. If [strip] is [true], character data is treated like
     attribute data, white space before and after elements is removed
-    and any white space is collapsed and transformed to a single [' ']
-    space character, except if the data is under the scope of a {e
+    and any white space is collapsed and transformed to a single
+    space character ([U+0020]), except if the data is under the scope of a {e
     xml:space} attribute whose value is {e preserve}.  If [strip] is
     [false] all white space data is preserved as present in the
     document (however all kinds of
     {{:http://www.w3.org/TR/REC-xml/#sec-line-ends}line ends} are
-    translated to the single character ['\n']).  {3:inns Namespaces}
+    translated to the newline character ([U+000A]).  {3:inns Namespaces}
 
     Xmlm's {{:#TYPEname}names} are
     {{:http://www.w3.org/TR/xml-names11/#dt-expname}expanded names}.
@@ -466,14 +468,13 @@ with type string = String.t
     When a well-formed sequence of signals is input, no data is consumed beyond
     the closing ['>'] of the document's root element. 
 
-    If you want
-    to parse a document as {{:http://www.w3.org/TR/REC-xml/#NT-document}defined}
-    in the XML specification, call {!eoi} after a well-formed sequence of signals, 
-    it must return
-    [true]. If you expect another document on the same input 
-    abstraction a new a new well-formed sequence of signals can be
-    {!input}. Use {!eoi} to check if a document follows (this may
-    consume data). 
+    If you want to parse a document as
+    {{:http://www.w3.org/TR/REC-xml/#NT-document}defined} in the XML
+    specification, call {!eoi} after a well-formed sequence of
+    signals, it must return [true]. If you expect another document on
+    the same input abstraction a new well-formed sequence of signals
+    can be {!input}. Use {!eoi} to check if a document follows (this
+    may consume data).
 
     Invoking {!eoi} after a well-formed sequence of signals skips
     whitespaces, comments and processing instructions until it gets to
@@ -558,7 +559,7 @@ let ex_ns = (Xmlm.ns_xmlns, "ex"), "http://example.org/ex"]}
 
     {3:outmisc Miscellaneous}
     {ul
-    {- Output on a channel destination does not flush it.}
+    {- Output on a channel does not flush it.}
     {- In attribute and character data you provide, markup 
        delimiters ['<'],['>'],['&'], and ['\"'] are 
         automatically escaped to 
@@ -641,7 +642,7 @@ let ex_ns = (Xmlm.ns_xmlns, "ex"), "http://example.org/ex"]}
     A document's sequence of signals can be easily converted
     to an arborescent data structure. Assume your trees are defined by :
     {[type tree = E of Xmlm.tag * tree list | D of string]}
-    The following functions input/output xml documents from/to the abstractions 
+    The following functions input/output xml documents from/to abstractions 
     as value of type [tree].
 {[let in_tree i = 
   let el tag childs = E (tag, childs)  in
