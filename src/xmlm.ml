@@ -466,7 +466,8 @@ struct
 	begin match e with                              
 	| `US_ASCII -> reset uchar_ascii i
 	| `ISO_8859_1 -> reset uchar_iso_8859_1 i
-	| `UTF_8 -> reset uchar_utf8 i
+	| `UTF_8 ->                                  (* Skip BOM if present. *)
+	    reset uchar_utf8 i; if i.c = u_bom then (i.col <- 0; nextc i)
 	| `UTF_16 ->                             (* Which UTF-16 ? look BOM. *)
 	    let b0 = nextc i; i.c in
 	    let b1 = nextc i; i.c in
