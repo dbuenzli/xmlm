@@ -17,7 +17,7 @@
     Consult the {{:#io}features and limitations} and {{:#ex}examples} 
     of use.
 
-    {e Version %%VERSION%%, %%EMAIL%% }
+    {e Version %%VERSION%% %%EMAIL%% }
 
     {b References.}
 
