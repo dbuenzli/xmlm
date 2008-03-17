@@ -18,7 +18,7 @@ module type String = sig
   val lowercase : t -> t
   val iter : (int -> unit) -> t -> unit
   val of_string : std_string -> t
-  val to_utf8_string : t -> std_string
+  val to_utf_8 : ('a -> std_string -> 'a) -> 'a -> t -> 'a
   val compare : t -> t -> int
 end
       
@@ -280,13 +280,13 @@ struct
     | `Unknown_ns_prefix e -> bracket "unknown namespace prefix (" e ")"
     | `Illegal_char_ref s -> bracket "illegal character reference (#" s ")"
     | `Illegal_char_seq s ->
-	bracket "illegal character sequence here (\"" s "\")"
+	bracket "character sequence illegal here (\"" s "\")"
     | `Expected_char_seqs (exps, fnd) -> 
 	let exps = 
 	  let exp acc v = cat acc (bracket "\"" v "\", ") in
 	  List.fold_left exp String.empty exps
 	in
-	cat (str "expected character sequence ") 
+	cat (str "expected one of these character sequence: ") 
 	  (cat exps (bracket "found \"" fnd "\""))
 
   type limit =                                        (* XML is odd to parse. *)
@@ -414,7 +414,7 @@ struct
   let skip_white i = while (is_white i.c) do nextc i done        
   let skip_white_eof i = while (is_white i.c) do nextc_eof i done
   let accept i c = if i.c = c then nextc i else err_expected_chars i [ c ]
-    
+
   let clear_ident i = Buffer.clear i.ident
   let clear_data i = Buffer.clear i.data
   let addc_ident i c = Buffer.add_uchar i.ident c
@@ -596,7 +596,12 @@ struct
   let rec skip_comment i =                    (* {Comment}, '<!--' was eaten *)
     while (i.c <> u_minus) do nextc i done;
     nextc i;
-    if i.c <> u_minus then skip_comment i else (nextc_eof i; accept i u_gt)
+    if i.c <> u_minus then skip_comment i else 
+    begin 
+      nextc_eof i;
+      if i.c <> u_gt then err_expected_chars i [ u_gt ];
+      nextc_eof i
+    end
       
   let rec skip_pi i =                          (* {PI}, '<?' qname was eaten *)
     while (i.c <> u_qmark) do nextc i done;
@@ -625,11 +630,11 @@ struct
     try while (true) do 
       if i.c = u_rbrack then begin
 	nextc i;
-	if i.c = u_rbrack then begin 
+	while i.c = u_rbrack do
 	  nextc i;
 	  if i.c = u_gt then (nextc i; raise Exit);
 	  addc i u_rbrack
-	end;
+	done;
 	addc i u_rbrack;
       end;
       addc i i.c;
@@ -672,7 +677,7 @@ struct
       end
 
   let rec skip_misc i ~allow_xmlpi = match i.limit with          (* {Misc}* *)
-  | Pi (p,l) when (str_empty p && str_eq n_xml l) -> 
+  | Pi (p,l) when (str_empty p && str_eq n_xml (String.lowercase l)) -> 
       if allow_xmlpi then () else err i (`Illegal_char_seq (str "<?xml"))
   | Pi _ -> skip_pi i; p_limit i; skip_misc i ~allow_xmlpi
   | Comment -> skip_comment i; p_limit i; skip_misc i ~allow_xmlpi
@@ -945,7 +950,7 @@ struct
   let err_el_end = "end signal without matching start signal."
   let err_data = "data signal not allowed here"
 
-  let make_output ?(nl = false) ?(indent = None) ?(ns_prefix = fun _ -> None)d =
+  let make_output ?(nl = false) ?(indent = None) ?(ns_prefix = fun _ ->None) d =
     let outs, outc = match d with 
     | `Channel c -> (output c), (output_char c)
     | `Buffer b -> (Std_buffer.add_substring b), (Std_buffer.add_char b)
@@ -967,15 +972,16 @@ struct
       prefixes = prefixes; scopes = []; depth = -1; fun_prefix = ns_prefix; }
  
   let outs o s = o.outs s 0 (Std_string.length s)
+  let str_utf_8 s = String.to_utf_8 (fun _ s -> s) "" s
+  let out_utf_8 o s = ignore (String.to_utf_8 (fun o s -> outs o s; o) o s)
 
   let prefix_name o (ns, local) = 
     try 
-      let prefix = Ht.find o.prefixes ns in
-      if str_eq ns n_xmlns && str_eq local n_xmlns then (String.empty, n_xmlns)
-      else (prefix, local)
+      if str_eq ns ns_xmlns && str_eq local n_xmlns then (String.empty, n_xmlns)
+      else (Ht.find o.prefixes ns, local)
     with Not_found -> 
       match o.fun_prefix ns with
-      | None -> invalid_arg (err_prefix (String.to_utf8_string ns))
+      | None -> invalid_arg (err_prefix (str_utf_8 ns))
       | Some prefix -> prefix, local
 
   let bind_prefixes o atts = 
@@ -989,33 +995,36 @@ struct
     in
     List.fold_left add [] atts
 
-  let out_data o s =                             
-    let len = Std_string.length s in
-    let start = ref 0 in
-    let last = ref 0 in
-    let escape e = 
-      o.outs s !start (!last - !start);
-      outs o e;
-      incr last;
-      start := !last
+  let out_data o s =
+    let out () s = 
+      let len = Std_string.length s in
+      let start = ref 0 in
+      let last = ref 0 in
+      let escape e = 
+	o.outs s !start (!last - !start);
+	outs o e;
+	incr last;
+	start := !last
+      in
+      while (!last < len) do match Std_string.get s !last with 
+      | '<' -> escape "&lt;"         (* Escape markup delimiters. *)
+      | '>' -> escape "&gt;"
+      | '&' -> escape "&amp;"
+   (* | '\'' -> escape "&apos;" *) (* Not needed we use \x22 for attributes. *)
+      | '\x22' -> escape "&quot;"
+      | _ -> incr last
+      done;
+      o.outs s !start (!last - !start)
     in
-    while (!last < len) do match Std_string.get s !last with 
-    | '<' -> escape "&lt;"         (* Escape markup delimiters. *)
-    | '>' -> escape "&gt;"
-    | '&' -> escape "&amp;"
-  (*| '\'' -> escape "&apos;" *)   (* Not needed we use \x22 for attributes. *)
-    | '\x22' -> escape "&quot;"
-    | _ -> incr last
-    done;
-    o.outs s !start (!last - !start)
+    String.to_utf_8 out () s
       
   let out_qname o (p, l) = 
-    if not (str_empty p) then (outs o (String.to_utf8_string p); o.outc ':'); 
-    outs o (String.to_utf8_string l)
+    if not (str_empty p) then (out_utf_8 o p; o.outc ':'); 
+    out_utf_8 o l
 
   let out_attribute o (n, v) = 
     o.outc ' '; out_qname o (prefix_name o n); outs o "=\x22"; 
-    out_data o (String.to_utf8_string v); 
+    out_data o v; 
     o.outc '\x22'
     
   let output o s = 
@@ -1029,7 +1038,7 @@ struct
       | `Dtd d ->
 	  outs o "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n";
 	  begin match d with 
-	  | Some dtd -> (outs o (String.to_utf8_string dtd); o.outc '\n') 
+	  | Some dtd -> out_utf_8 o dtd; o.outc '\n' 
 	  | None -> ()
 	  end;
 	  o.depth <- 0
@@ -1052,22 +1061,22 @@ struct
 	  begin match o.scopes with
 	  | (n, uris) :: scopes' ->
 	      o.depth <- o.depth - 1;
-	      if o.last_el_start then (outs o "/>"; unindent o) else
+	      if o.last_el_start then outs o "/>" else
 	      begin 
 		indent o;
 		outs o "</"; out_qname o n; o.outc '>';
-		unindent o
 	      end;
 	      o.scopes <- scopes';
 	      List.iter (Ht.remove o.prefixes) uris;
 	      o.last_el_start <- false;
-	      if o.depth = 0 then (if o.nl then o.outc '\n'; o.depth <- -1;)
+	      if o.depth = 0 then (if o.nl then o.outc '\n'; o.depth <- -1;) 
+	      else unindent o
 	  | [] -> invalid_arg err_el_end
 	  end
       | `Data d -> 
 	  if o.last_el_start then (outs o ">"; unindent o);
 	  indent o;
-	  out_data o (String.to_utf8_string d);
+	  out_data o d;
 	  unindent o;
 	  o.last_el_start <- false
       | `Dtd _ -> failwith err_dtd
@@ -1115,7 +1124,7 @@ module String = struct
     try while true do f (uchar_utf8 i) done with Exit -> ()
 
   let of_string s = s    
-  let to_utf8_string x = x
+  let to_utf_8 f v x = f v x
   let compare = String.compare 
 end
     

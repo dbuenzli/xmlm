@@ -271,8 +271,9 @@ module type String = sig
   val of_string : std_string -> t
   (** String from an OCaml string. *)
 
-  val to_utf8_string : t -> std_string
-  (** UTF-8 encoded OCaml string from the string. *)
+  val to_utf_8 : ('a -> std_string -> 'a) -> 'a -> t -> 'a
+  (** [to_utf_8 f v s], is [f (... (f (f v s1) s2) ...) sn]. Where the
+      concatenation of [s1], [s2], ... [sn] is [s] as an UTF-8 stream. *)
 
   val compare : t -> t -> int
   (** String comparison. *)
