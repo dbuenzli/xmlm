@@ -407,7 +407,7 @@ with type string = String.t
     the library are {b always} UTF-8 encoded (unless you use the functor). 
     
     The encoding can be specified explicitly using the optional
-    argument [enc]. Otherwise the parser uses UTF-16 if there is a
+    argument [enc]. Otherwise the parser uses UTF-16 or UTF-8 if there is a
     {{:http://www.unicode.org/unicode/faq/utf_bom.html#BOM}BOM} at the
     beginning of the document. If there is no BOM it uses the encoding
     specified in the {{:http://www.w3.org/TR/REC-xml/#NT-XMLDecl} XML

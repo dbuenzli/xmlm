@@ -5,6 +5,7 @@ New features:
 - Proper XML namespace support, all names are expanded names.
 - Whitespace stripping respects the xml:space attributes.
 - Xmlm.Make functor to use other types for strings and internal buffers.  
+- UTF-8 encoded documents can start with an UTF-8 encoded BOM.
 
 Incompatible changes:
 - Xmlm.encoding becomes a polymorphic variant.

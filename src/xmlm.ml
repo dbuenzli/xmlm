@@ -452,7 +452,12 @@ struct
 	| 0xFF ->                                           (* UTF-16LE BOM. *)
 	    nextc i; if i.c <> 0xFE then err i `Malformed_char_stream;
 	    reset uchar_utf16le i;
-	    true                                 
+	    true   
+        | 0xEF ->                                              (* UTF-8 BOM. *)
+	    nextc i; if i.c <> 0xBB then err i `Malformed_char_stream;
+	    nextc i; if i.c <> 0xFF then err i `Malformed_char_stream;
+	    reset uchar_utf8 i;
+	    true
 	| 0x3C | _ ->                    (* UTF-8 or other, try declaration. *)
 	    i.uchar <- uchar_utf8; 
 	    false  
