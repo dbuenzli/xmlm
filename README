@@ -1,7 +1,7 @@
-===============================================================================
+...............................................................................
 Xmlm - Streaming XML input/output for OCaml
        Release %%VERSION%%
-===============================================================================
+...............................................................................
 
 Xmlm is an OCaml module providing streaming XML input/output. It aims
 at making non valid (but well-formed) XML processing robust and
@@ -13,14 +13,14 @@ translate its own data structures to an XML representation and
 vice-versa. The module has functions to easily construct/deconstruct
 arborescent data structures from/to XML.
 
-To facilitate its integration into projects, Xmlm is made of a
-single module and distributed under a BSD license.
+To facilitate its integration into projects Xmlm is made of a single
+module and distributed under a BSD license.
 
 Project home page : http://erratique.ch/software/xmlm
 Contact : daniel.buenzl i@erratique.ch
 
-Installation
-------------
+
+# Installation
 
 Xmlm was tested with OCaml 3.10. It can be directly embedded in your
 project. Just copy xmlm.mli and xmlm.ml from the src/ directory to

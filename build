@@ -74,7 +74,8 @@ distrib ()
   done
 
   action module
-  action test
+  action xmltrip
+  action examples.cmo
   action doc
   action clean
 
