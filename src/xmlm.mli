@@ -6,14 +6,14 @@
 
 (** Streaming XML IO.  
 
-    A valid sequence of {{:#TYPEsignal}signals} represents a
-    well-formed {{:http://www.w3.org/TR/REC-xml}XML} document tree
-    traversal in depth first order. Input pulls a valid sequence of
-    signals from a data source and output pushes a valid sequence of
-    signals to a data destination. 
+    A well-formed sequence of {{:#TYPEsignal}signals} represents an
+    {{:http://www.w3.org/TR/REC-xml}XML} document tree traversal in
+    depth first order. Input pulls a well-formed sequence of signals from a
+    data source and output pushes a well-formed sequence of signals to a
+    data destination.
 
     The module has functions to construct/deconstruct custom
-    arborescent data structures from/to valid sequences of signals.
+    arborescent data structures from/to well-formed sequences of signals.
 
     Consult the {{:#io}features and limitations} and {{:#ex}examples} 
     of use.
@@ -62,12 +62,12 @@ type tag = name * attribute list
 (** The type for an element tag. Tag name and attribute list. *)
 
 type signal = [ `Dtd of dtd | `El_start of tag | `El_end | `Data of string ]
-(** The type for signals. A {e valid} sequence of signals belongs
+(** The type for signals. A {e well-formed} sequence of signals belongs
     to the language of the [doc] grammar :
     {[doc ::= `Dtd tree
 tree ::= `El_start child `El_end
 child ::= `Data | tree | epsilon ]}
-    Input and output deal only with valid sequences or
+    Input and output deal only with well-formed sequences or
     exceptions are raised.
 *)
     
@@ -140,10 +140,10 @@ val make_input : ?enc:encoding option -> ?strip:bool ->
 
 val input : input -> signal
 (** Inputs a signal. Repeated invocation of the function with the same
-    input abstraction will generate a {{:#TYPEsignal}valid} sequence
+    input abstraction will generate a {{:#TYPEsignal}well-formed} sequence
     of signals or an {!Error} is raised. Furthermore there will be no
     two consecutive [`Data] signals in the sequence and their string
-    is always non empty. After a valid sequence was input another may 
+    is always non empty. After a well-formed sequence was input another may 
     be input see {!eoi} and {{:#iseq}details}.
 
     {b Raises} {!Error} on input errors. *)
@@ -169,7 +169,7 @@ val input_tree : el:(tag -> 'a list -> 'a) -> data:(string -> 'a)  ->
 
 val input_doc_tree : el:(tag -> 'a list -> 'a) -> data:(string -> 'a) -> 
                      input -> (dtd * 'a)
-(** Same as {!input_tree} but reads a complete {{:#TYPEsignal}valid}  
+(** Same as {!input_tree} but reads a complete {{:#TYPEsignal}well-formed}  
     sequence of signals. 
 
     {b Raises} {!Error} on input errors and [Invalid_argument]
@@ -215,11 +215,11 @@ val make_output : ?nl:bool -> ?indent:int option ->
 
 
 val output : output -> signal -> unit
-(** Outputs a signal. After a valid sequence of signals was 
-    output a new valid sequence can be output.
+(** Outputs a signal. After a well-formed sequence of signals was 
+    output a new well-formed sequence can be output.
 
     {b Raises} [Invalid_argument] if the resulting signal sequence on
-    the output abstraction is not {{:#TYPEsignal}valid} or if a
+    the output abstraction is not {{:#TYPEsignal}well-formed} or if a
     namespace name could not be bound to a prefix. *)
 
 val output_tree : ('a -> 'a frag) -> output -> 'a -> unit
@@ -229,7 +229,7 @@ val output_tree : ('a -> 'a frag) -> output -> 'a -> unit
     {b Raises} see {!output}. *)
 
 val output_doc_tree : ('a -> 'a frag) -> output -> (dtd * 'a) -> unit   
-(** Same as {!output_tree} but outputs a complete {{:#TYPEsignal}valid} 
+(** Same as {!output_tree} but outputs a complete {{:#TYPEsignal}well-formed} 
     sequence of signals.
 
     {b Raises} see {!output}. *)
@@ -463,19 +463,19 @@ with type string = String.t
     [`Unknown_entity_ref] is returned.    
     {3:iseq Sequences of documents}
 
-    When a valid sequence of signals is input, no data is consumed beyond
+    When a well-formed sequence of signals is input, no data is consumed beyond
     the closing ['>'] of the document's root element. 
 
     If you want
     to parse a document as {{:http://www.w3.org/TR/REC-xml/#NT-document}defined}
-    in the XML specification, call {!eoi} after a valid sequence of signals, 
+    in the XML specification, call {!eoi} after a well-formed sequence of signals, 
     it must return
     [true]. If you expect another document on the same input 
-    abstraction a new a new valid sequence of signals can be
+    abstraction a new a new well-formed sequence of signals can be
     {!input}. Use {!eoi} to check if a document follows (this may
     consume data). 
 
-    Invoking {!eoi} after a valid sequence of signals skips
+    Invoking {!eoi} after a well-formed sequence of signals skips
     whitespaces, comments and processing instructions until it gets to
     either an {{:http://www.w3.org/TR/REC-xml/#NT-XMLDecl} XML
     declaration} or a {{:http://www.w3.org/TR/REC-xml/#dt-doctype}DTD}
@@ -508,10 +508,10 @@ with type string = String.t
     {3:outenc Encoding} 
 
     Outputs only {{:http://www.faqs.org/rfcs/rfc3629.html} UTF-8}
-    encoded documents (even if you use the functor). 
-    Strings given to output functions {b must be}
-    UTF-8 encoded, no checks are performed.
-    {3:outns Namespaces}
+    encoded documents (even if you use the functor).  Strings given to
+    output functions {b must be} UTF-8 encoded (unless you use the
+    functor, but you need to provide a translation), no checks are
+    performed.  {3:outns Namespaces}
 
     Xmlm's {{:#TYPEname}names} are
     {{:http://www.w3.org/TR/xml-names11/#dt-expname}expanded names}.
@@ -552,8 +552,8 @@ let ex_ns = (Xmlm.ns_xmlns, "ex"), "http://example.org/ex"]}
        characters.
     {3:oseq Sequences of documents} 
 
-    After a valid sequence of signals was output, the output
-    abstraction can be reused to output a new valid sequence of
+    After a well-formed sequence of signals was output, the output
+    abstraction can be reused to output a new well-formed sequence of
     signals.
 
     {3:outmisc Miscellaneous}
