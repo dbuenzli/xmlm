@@ -43,7 +43,7 @@ be built with :
   > ./build xmltrip
 
 xmltrip reads XML files with Xmlm and outputs them back in various
-ways. It is usefull to understand how Xmlm handles documents. xmltrip
+ways. It is useful to understand how Xmlm handles documents. xmltrip
 -help has more information.
 
 If you need to parse XHTML, there is a file named xhtml.ml in the
