@@ -1,5 +1,5 @@
 (*----------------------------------------------------------------------------
-   Copyright (c) %%COPYRIGHTYEAR%%, Daniel C. Bünzli. All rights reserved.
+   Copyright (c) %%COPYRIGHTYEAR%%, Daniel C. BÃ¼nzli. All rights reserved.
    Distributed under a BSD license, see license at the end of the file.
    Xmlm version %%VERSION%%
   ----------------------------------------------------------------------------*)
@@ -17,7 +17,7 @@
     Consult the {{:#io}features and limitations} and {{:#ex}examples} 
     of use.
 
-    {e Version %%VERSION%% %%EMAIL%% }
+    {e Version %%VERSION%% - %%EMAIL%% }
 
     {b References.}
 
@@ -757,7 +757,7 @@ let out_w3c_bureaucrats dst bl =
 *)
 
 (*----------------------------------------------------------------------------
-  Copyright (c) %%COPYRIGHTYEAR%%, Daniel C. Bünzli
+  Copyright (c) %%COPYRIGHTYEAR%%, Daniel C. BÃ¼nzli
   All rights reserved.
 
   Redistribution and use in source and binary forms, with or without
@@ -772,7 +772,7 @@ let out_w3c_bureaucrats dst bl =
      documentation and/or other materials provided with the
      distribution.
 
-  3. Neither the name of the Daniel C. Bünzli nor the names of
+  3. Neither the name of the Daniel C. BÃ¼nzli nor the names of
      contributors may be used to endorse or promote products derived
      from this software without specific prior written permission.
 
