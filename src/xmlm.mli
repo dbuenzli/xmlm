@@ -278,7 +278,7 @@ module type String = sig
       concatenation of [s1], [s2], ... [sn] is [s] as an UTF-8 stream. *)
 
   val compare : t -> t -> int
-  (** String comparison. *)
+  (** String comparison. Binary comparison is sufficent. *)
 end
 
 (** Input signature for internal buffers. *)
