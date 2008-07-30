@@ -25,18 +25,27 @@ ocb () { $OCAMLBUILD $BUILDFLAGS $* ; }
 action () 
 {
   case $1 in
-    module) 
-      ocb $PROJECTNAME.cmx $PROJECTNAME.cmo ;;
+    module-byte)
+      ocb $PROJECTNAME.cmo ;;
+    module-native) 
+      ocb $PROJECTNAME.cmx ;;
+    module)
+      action module-byte
+      action module-native ;;
     xmltrip) 
       ocb xmltrip.native ;;
     doc)
       ocb $PROJECTNAME.cmi
       $OCAMLDOC -html -I src -colorize-code -d $DOCDIR src/$PROJECTNAME.mli ;;
     distrib) distrib ;;
+    install-byte)
+      action module-byte
+      $MKDIR -p $INSTALLDIR
+      $CP _build/src/*.{ml,mli,cmi,cmo} src/META $INSTALLDIR ;;
     install)
       action module
       $MKDIR -p $INSTALLDIR
-      $CP _build/src/*.{ml,mli,cmi,cmo,cmx,o} $INSTALLDIR ;;
+      $CP _build/src/*.{ml,mli,cmi,cmo,cmx,o} src/META $INSTALLDIR ;;
     clean) 
       ocb -clean ;;
     clean-all) 
