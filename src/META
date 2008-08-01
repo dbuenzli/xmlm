@@ -1,5 +1,5 @@
 version = "%%VERSION%%"
-description = "streaming XML IO"
+description = "%%SHORTDESCRIPTION%%"
 archive(byte) = "xmlm.cmo"
 archive(native) = "xmlm.cmx"
 directory = "+xmlm"
