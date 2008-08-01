@@ -42,7 +42,7 @@ action ()
     install-byte)
       action module-byte
       $MKDIR -p $INSTALLDIR
-      FILE="_build/src/$PROJECTNAME"
+      F="_build/src/$PROJECTNAME"
       $CP $F.ml $F.mli $F.cmi $F.cmo src/META $INSTALLDIR ;;
     install)
       action module
