@@ -1,6 +1,7 @@
-# Version 1.0.1
+# Version 1.0.1, 2008-08-01, Lausanne
 
-Support for Debian packaging.
+- POSIX compliant build shell script (thanks to Michael D Ekstrand).
+- Support for Debian packaging.
 
 
 # Version 1.0.0, 2008-03-17, Lausanne

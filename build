@@ -14,7 +14,7 @@ DOCDIR=${DOCDIR:="doc"}
 # Caml tools
 OCAMLDOC=${OCAMLDOC:="ocamldoc"}
 OCAMLBUILD=${OCAMLBUILD:="ocamlbuild"}
-BUILDFLAGS="-classic-display -cflags -g,-dtypes -Is test,src"
+BUILDFLAGS=${BUILDFLAGS:="-classic-display -cflags -g,-dtypes -Is test,src"}
 
 # Misc tools
 CP=${CP:="cp"}
@@ -42,11 +42,13 @@ action ()
     install-byte)
       action module-byte
       $MKDIR -p $INSTALLDIR
-      $CP _build/src/*.{ml,mli,cmi,cmo} src/META $INSTALLDIR ;;
+      FILE="_build/src/$PROJECTNAME"
+      $CP $F.ml $F.mli $F.cmi $F.cmo src/META $INSTALLDIR ;;
     install)
       action module
       $MKDIR -p $INSTALLDIR
-      $CP _build/src/*.{ml,mli,cmi,cmo,cmx,o} src/META $INSTALLDIR ;;
+      F="_build/src/$PROJECTNAME"
+      $CP $F.ml $F.mli $F.cmi $F.cmo $F.cmx $F.o src/META $INSTALLDIR ;;
     clean) 
       ocb -clean ;;
     clean-all) 
