@@ -568,10 +568,10 @@ struct
 
   let p_attributes i =                            (* ({S} {Attribute})* {S}? *) 
     let rec aux i pre_acc acc = 
-      if not (is_white i.c) then pre_acc, List.rev acc else
+      if not (is_white i.c) then pre_acc, acc else
       begin
 	skip_white i;
-	if i.c = u_slash or i.c = u_gt then pre_acc, List.rev acc else 
+	if i.c = u_slash or i.c = u_gt then pre_acc, acc else 
 	begin 
 	  let (prefix, local) as n = p_qname i in
 	  let v = skip_white i; accept i u_eq; p_attr_value i in
@@ -809,7 +809,7 @@ struct
     let strip = i.stripping in  (* save it here, p_attributes may change it. *) 
     let prefixes, atts = p_attributes i in
     i.scopes <- (n, prefixes, strip) :: i.scopes;
-    `El_start ((expand_name i n), List.map expand_att atts)
+    `El_start ((expand_name i n), List.rev_map expand_att atts)
 
   let p_el_end_signal i n = match i.scopes with
   | (n', prefixes, strip) :: scopes ->
