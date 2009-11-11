@@ -1,3 +1,8 @@
+# Version 1.0.2, 2009-11-11, 大足
+
+- Replaced a (non tail-recursive) use of List.map.
+
+
 # Version 1.0.1, 2008-08-01, Lausanne
 
 - POSIX compliant build shell script (thanks to Michael D Ekstrand).
