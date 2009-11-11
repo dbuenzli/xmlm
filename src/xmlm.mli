@@ -576,7 +576,9 @@ let ex_ns = (Xmlm.ns_xmlns, "ex"), "http://example.org/ex"]}
     {ul 
     {- The best options to do an input/output round trip
        and preserve as much information as possible is to 
-       input with [strip = false] and output with [indent = None].}}
+       input with [strip = false] and output with [indent = None].}
+    {- Complete whitespace control on output is achieved 
+       with [indent = None] and suitable [`Data] signals}}
 *)
 
 (** {1:ex Examples} 
