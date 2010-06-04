@@ -163,7 +163,7 @@ let int16_le i =
 let uchar_utf16 int16 i = 
   let c0 = int16 i in
   if c0 < 0xD800 || c0 > 0xDFFF then c0 else
-  if c0 >= 0xDBFF then raise Malformed else
+  if c0 > 0xDBFF then raise Malformed else
   let c1 = int16 i in
   (((c0 land 0x3FF) lsl 10) lor (c1 land 0x3FF)) + 0x10000
     
