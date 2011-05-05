@@ -19,17 +19,16 @@
 
     {e Version %%VERSION%% - %%EMAIL%% }
 
-    {b References.}
-
-    Tim Bray. 
+    {3 References}
+    {ul
+    {- Tim Bray. 
     {e {{:http://www.xml.com/axml/axml.html}The annotated XML Specification}}, 
-    1998. 
-
-    Tim Bray et al. 
+    1998.} 
+    {- Tim Bray et al. 
     {e {{:http://www.w3.org/TR/xml-names11}Namespaces in XML 1.1 (2nd ed.)}},
-    2006.
+    2006.}} *)
 
-    {1 Basic types and values} *)
+(**  {1 Basic types and values} *)
 
 (** The type for character encodings. For [`UTF_16], endianness is
     determined from the 
@@ -579,9 +578,8 @@ let ex_ns = (Xmlm.ns_xmlns, "ex"), "http://example.org/ex"]}
        input with [strip = false] and output with [indent = None].}
     {- Complete whitespace control on output is achieved 
        with [indent = None] and suitable [`Data] signals}}
-*)
 
-(** {1:ex Examples} 
+    {1:ex Examples} 
 
     {2:exseq Sequential processing}    
 
@@ -604,6 +602,7 @@ let ex_ns = (Xmlm.ns_xmlns, "ex"), "http://example.org/ex"]}
   Xmlm.output o (Xmlm.input i); (* `Dtd *)
   pull i o 0;
   if not (Xmlm.eoi i) then invalid_arg "document not well-formed"]}
+
     The following function reads a {e sequence} of documents on an
     input channel and outputs it.
 {[let id_seq ic oc = 

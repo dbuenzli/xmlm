@@ -1,4 +1,7 @@
-# Version 1.0.2, 2009-11-11, 大足
+
+- Improved portability of build script.
+
+# Version 1.0.2, 2009-11-11, 大足县
 
 - Replaced a (non tail-recursive) use of List.map.
 
