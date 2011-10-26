@@ -963,7 +963,7 @@ struct
     | `Buffer b -> (Std_buffer.add_substring b), (Std_buffer.add_char b)
     | `Fun f -> 
 	let os s p l = 
-	  for i = p to p + l - 1 do f (Char.code (Std_string.get s p)) done 
+	  for i = p to p + l - 1 do f (Char.code (Std_string.get s i)) done 
 	in
 	let oc c = f (Char.code c) in 
 	os, oc
