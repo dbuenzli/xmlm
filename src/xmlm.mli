@@ -1,8 +1,8 @@
-(*----------------------------------------------------------------------------
-   Copyright (c) %%COPYRIGHTYEAR%%, Daniel C. Bünzli. All rights reserved.
-   Distributed under a BSD license, see license at the end of the file.
-   Xmlm version %%VERSION%%
-  ----------------------------------------------------------------------------*)
+(*---------------------------------------------------------------------------
+   Copyright %%COPYRIGHT%%. All rights reserved.
+   Distributed under a BSD3 license, see license at the end of the file.
+   %%NAME%% version %%VERSION%%
+  ---------------------------------------------------------------------------*)
 
 (** Streaming XML IO.  
 
@@ -17,7 +17,7 @@
     Consult the {{:#io}features and limitations} and {{:#ex}examples} 
     of use.
 
-    {e Version %%VERSION%% - %%EMAIL%% }
+    {e Version %%VERSION%% - %%AUTHORS%% }
 
     {3 References}
     {ul
@@ -757,8 +757,8 @@ let out_w3c_bureaucrats dst bl =
   out (`El_end)]}
 *)
 
-(*----------------------------------------------------------------------------
-  Copyright (c) %%COPYRIGHTYEAR%%, Daniel C. Bünzli
+(*---------------------------------------------------------------------------
+  Copyright %%COPYRIGHT%%
   All rights reserved.
 
   Redistribution and use in source and binary forms, with or without
@@ -773,7 +773,7 @@ let out_w3c_bureaucrats dst bl =
      documentation and/or other materials provided with the
      distribution.
 
-  3. Neither the name of the Daniel C. Bünzli nor the names of
+  3. Neither the name of Daniel C. Bünzli nor the names of
      contributors may be used to endorse or promote products derived
      from this software without specific prior written permission.
 
@@ -788,4 +788,4 @@ let out_w3c_bureaucrats dst bl =
   THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
   (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
   OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
-  ----------------------------------------------------------------------------*)
+  ---------------------------------------------------------------------------*)

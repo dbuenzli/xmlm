@@ -1,37 +1,37 @@
-
-- Improved portability of build script.
+# Version 1.0.3 2012-03-11, La Forclaz (VS) 
+- OASIS support.
+- Fixes a bug in the UTF-16 decoder.
+- Fixes a bug in Xmlm.make_output with a custom function. Thanks to
+  Konstantinas Myalo for the report and the patch.
+- New argument to Xmlm.make_output to prevent the output of the xml
+  declaration.
+- New function Xmlm.output_depth, tells you the current nesting level.
 
 # Version 1.0.2, 2009-11-11, 大足县
-
 - Replaced a (non tail-recursive) use of List.map.
 
-
 # Version 1.0.1, 2008-08-01, Lausanne
-
 - POSIX compliant build shell script (thanks to Michael D Ekstrand).
 - Support for Debian packaging.
 
-
 # Version 1.0.0, 2008-03-17, Lausanne
 
-New features:
+## New features:
 - Streaming IO api with support to IO arborescent data structures.
 - Proper XML namespace support, all names are expanded names.
 - Whitespace stripping respects the xml:space attributes.
 - Xmlm.Make functor to use other types for strings and internal buffers.  
 - UTF-8 encoded documents can start with an UTF-8 encoded BOM.
 
-Incompatible changes:
+## Incompatible changes:
 - Xmlm.encoding becomes a polymorphic variant.
 - Xmlm.error becomes a polymorphic variant and the "E_" prefix is dropped.
 - Removed the callback api.
 - Removed the tree and cursor api.
 
-Other:
+## Other:
 - test/xhtml.ml has a mapping from XHTML entities to their UTF-8 sequence.
 - Build system switched from make to ocamlbuild 
 
-
 # Version 0.9.0, 2007-02-26, Lausanne
-
-First release.
+- First release.
