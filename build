@@ -71,7 +71,7 @@ distrib ()
   $CD $ROOTDIR
 
   # Remove dev artefacts
-  $RM -R -f TODO .git .gitignore build _tags myocamlbuild.ml  
+  $RM -R -f TODO .typerex .git .gitignore build _tags myocamlbuild.ml  
   action clean
 
   # Generate oasis artefacts
