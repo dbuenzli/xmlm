@@ -1,4 +1,6 @@
-# Version 1.0.3 2012-03-11, La Forclaz (VS) 
+v1.0.3 2012-03-11 La Forclaz (VS) 
+---------------------------------
+
 - OASIS support.
 - Fixes a bug in the UTF-16 decoder.
 - Fixes a bug in Xmlm.make_output with a custom function. Thanks to
@@ -7,14 +9,19 @@
   declaration.
 - New function Xmlm.output_depth, tells you the current nesting level.
 
-# Version 1.0.2, 2009-11-11, 大足县
+v1.0.2 2009-11-11 大足县
+-----------------------
+
 - Replaced a (non tail-recursive) use of List.map.
 
-# Version 1.0.1, 2008-08-01, Lausanne
+v1.0.1 2008-08-01 Lausanne
+----------------------------
+
 - POSIX compliant build shell script (thanks to Michael D Ekstrand).
 - Support for Debian packaging.
 
-# Version 1.0.0, 2008-03-17, Lausanne
+v1.0.0 2008-03-17 Lausanne
+----------------------------
 
 ## New features:
 - Streaming IO api with support to IO arborescent data structures.
@@ -33,5 +40,7 @@
 - test/xhtml.ml has a mapping from XHTML entities to their UTF-8 sequence.
 - Build system switched from make to ocamlbuild 
 
-# Version 0.9.0, 2007-02-26, Lausanne
+v0.9.0 2007-02-26 Lausanne
+--------------------------
+
 - First release.
