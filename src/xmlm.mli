@@ -224,6 +224,10 @@ val output : output -> signal -> unit
     the output abstraction is not {{:#TYPEsignal}well-formed} or if a
     namespace name could not be bound to a prefix. *)
 
+val output_depth : output -> int
+(** [output_depth o] is [o]'s current element nesting level (undefined
+    before the first [`El_start] and after the last [`El_end]). *)
+
 val output_tree : ('a -> 'a frag) -> output -> 'a -> unit
 (** Outputs signals corresponding to a value by recursively
     applying the given value deconstructor.
@@ -382,7 +386,8 @@ module type S = sig
   type output
   val make_output : ?decl:bool -> ?nl:bool -> ?indent:int option -> 
                     ?ns_prefix:(string -> string option) -> dest -> output
-	
+
+  val output_depth : output -> int
   val output : output -> signal -> unit
   val output_tree : ('a -> 'a frag) -> output -> 'a -> unit
   val output_doc_tree : ('a -> 'a frag) -> output -> (dtd * 'a) -> unit   

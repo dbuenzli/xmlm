@@ -93,6 +93,7 @@ module type S = sig
   val make_output : ?decl:bool -> ?nl:bool -> ?indent:int option -> 
                     ?ns_prefix:(string -> string option) -> dest -> output
 
+  val output_depth : output -> int
   val output : output -> signal -> unit
   val output_tree : ('a -> 'a frag) -> output -> 'a -> unit
   val output_doc_tree : ('a -> 'a frag) -> output -> (dtd * 'a) -> unit   
@@ -981,6 +982,7 @@ struct
       last_el_start = false; prefixes = prefixes; scopes = []; depth = -1; 
       fun_prefix = ns_prefix; }
 
+  let output_depth o = o.depth
   let outs o s = o.outs s 0 (Std_string.length s)
   let str_utf_8 s = String.to_utf_8 (fun _ s -> s) "" s
   let out_utf_8 o s = ignore (String.to_utf_8 (fun o s -> outs o s; o) o s)
