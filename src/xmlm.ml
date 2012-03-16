@@ -1,7 +1,7 @@
 (*---------------------------------------------------------------------------
    Copyright %%COPYRIGHT%%. All rights reserved.
    Distributed under a BSD3 license, see license at the end of the file.
-   %%NAME%% version %%VERSION%%
+   %%NAME%% release %%VERSION%%
   ---------------------------------------------------------------------------*)
 
 module Std_string = String
