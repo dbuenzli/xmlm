@@ -5,8 +5,8 @@ v1.0.3 2012-03-11 La Forclaz (VS)
 - Fixes a bug in the UTF-16 decoder.
 - Fixes a bug in Xmlm.make_output with a custom function. Thanks to
   Konstantinas Myalo for the report and the patch.
-- New argument to Xmlm.make_output to prevent the output of the xml
-  declaration.
+- New optional argument `decl` to Xmlm.make_output to control whether the 
+  XML declaration should be output.
 - New function Xmlm.output_depth, tells you the current nesting level.
 
 v1.0.2 2009-11-11 大足县

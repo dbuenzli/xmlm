@@ -17,7 +17,7 @@
     Consult the {{:#io}features and limitations} and {{:#ex}examples} 
     of use.
 
-    {e Version %%VERSION%% - %%AUTHORS%% }
+    {e Release %%VERSION%% - %%AUTHORS%% }
 
     {3 References}
     {ul
@@ -201,10 +201,12 @@ type dest = [ `Channel of out_channel | `Buffer of Buffer.t |
 type output
 (** The type for output abstractions. *)
 
-val make_output : ?nl:bool -> ?indent:int option -> 
+val make_output : ?decl:bool -> ?nl:bool -> ?indent:int option -> 
                   ?ns_prefix:(string -> string option) -> dest -> output
 (** Returns a new output abstraction writing to the given destination.
     {ul 
+    {- [decl], if [true] the {{:http://www.w3.org/TR/REC-xml/#NT-XMLDecl} XML
+     declaration} is output (defaults to [true]).}
     {- [nl], if [true] a newline is output when the root's element [`El_end] 
      signal is output.
     Defaults to [false].}
@@ -378,7 +380,7 @@ module type S = sig
     | `Channel of out_channel | `Buffer of std_buffer | `Fun of (int -> unit) ]
 
   type output
-  val make_output : ?nl:bool -> ?indent:int option -> 
+  val make_output : ?decl:bool -> ?nl:bool -> ?indent:int option -> 
                     ?ns_prefix:(string -> string option) -> dest -> output
 	
   val output : output -> signal -> unit

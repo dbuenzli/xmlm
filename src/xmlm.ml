@@ -90,7 +90,7 @@ module type S = sig
     | `Channel of out_channel | `Buffer of std_buffer | `Fun of (int -> unit) ]
 
   type output
-  val make_output : ?nl:bool -> ?indent:int option -> 
+  val make_output : ?decl:bool -> ?nl:bool -> ?indent:int option -> 
                     ?ns_prefix:(string -> string option) -> dest -> output
 
   val output : output -> signal -> unit
@@ -492,7 +492,7 @@ struct
       while is_name_char i.c do addc_ident i i.c; nextc i done;
       Buffer.contents i.ident
     end
-    
+
   let p_qname i =                                 (* {QName} (Namespace 1.1) *)
     let n = p_ncname i in
     if i.c <> u_colon then (String.empty, n) else (nextc i; (n, p_ncname i))
@@ -940,7 +940,8 @@ struct
     | `Channel of out_channel | `Buffer of std_buffer | `Fun of (int -> unit) ]
 
   type output = 
-      { nl : bool;                (* True if a newline is output at the end. *)
+      { decl : bool;        (* True if the XML declaration should be output. *)
+        nl : bool;                (* True if a newline is output at the end. *)
 	indent : int option;                        (* Optional indentation. *)
 	fun_prefix : string -> string option;            (* Prefix callback. *)
         prefixes : string Ht.t;                   (* uri -> prefix bindings. *)
@@ -957,7 +958,8 @@ struct
   let err_el_end = "end signal without matching start signal"
   let err_data = "data signal not allowed here"
 
-  let make_output ?(nl = false) ?(indent = None) ?(ns_prefix = fun _ ->None) d =
+  let make_output ?(decl = true) ?(nl = false) ?(indent = None) 
+      ?(ns_prefix = fun _ ->None) d =
     let outs, outc = match d with 
     | `Channel c -> (output c), (output_char c)
     | `Buffer b -> (Std_buffer.add_substring b), (Std_buffer.add_char b)
@@ -975,9 +977,10 @@ struct
       Ht.add h ns_xmlns n_xmlns;
       h
     in
-    { outs = outs; outc = outc; nl = nl; indent = indent; last_el_start = false;
-      prefixes = prefixes; scopes = []; depth = -1; fun_prefix = ns_prefix; }
- 
+    { decl = decl; outs = outs; outc = outc; nl = nl; indent = indent; 
+      last_el_start = false; prefixes = prefixes; scopes = []; depth = -1; 
+      fun_prefix = ns_prefix; }
+
   let outs o s = o.outs s 0 (Std_string.length s)
   let str_utf_8 s = String.to_utf_8 (fun _ s -> s) "" s
   let out_utf_8 o s = ignore (String.to_utf_8 (fun o s -> outs o s; o) o s)
@@ -1043,7 +1046,7 @@ struct
     if o.depth = -1 then 
       begin match s with
       | `Dtd d ->
-	  outs o "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n";
+          if o.decl then outs o "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n";
 	  begin match d with 
 	  | Some dtd -> out_utf_8 o dtd; o.outc '\n' 
 	  | None -> ()
