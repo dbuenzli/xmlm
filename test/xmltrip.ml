@@ -212,7 +212,7 @@ let main () =
     "-strip", Arg.Set strip, 
     "strip and collapse white space in character data.";
     "-ns", Arg.Set ns,
-    "replace unbound namespaces prefixes by themselves (on input and ouput).";
+    "replace unbound namespaces prefixes by themselves (on input and output).";
     "-eref", Arg.Set eref,
     "replace unknown entity references by their name.";
     "-xhtml", Arg.Set xhtml,
