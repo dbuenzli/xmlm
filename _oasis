@@ -1,6 +1,6 @@
 OASISFormat: 0.3
 Name: xmlm
-Version: 1.1.0
+Version: 1.1.1
 Synopsis: Streaming XML IO for OCaml
 Authors: Daniel Bünzli <daniel.buenzli at erratique.ch>
 Copyrights: (c) 2007-2012 Daniel C. Bünzli
