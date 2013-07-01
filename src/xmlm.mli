@@ -518,7 +518,14 @@ with type string = String.t
     encoded documents (even if you use the functor).  Strings given to
     output functions {b must be} UTF-8 encoded (unless you use the
     functor, but you need to provide a translation), no checks are
-    performed.  {3:outns Namespaces}
+    performed.  You should also make sure that the strings contains
+    only legal XML
+    {{:http://www.w3.org/TR/REC-xml/#NT-Char}characters}. These two
+    last property do hold if your strings where created by [Xmlm] on
+    input.
+
+
+    {3:outns Namespaces}
 
     Xmlm's {{:#TYPEname}names} are
     {{:http://www.w3.org/TR/xml-names11/#dt-expname}expanded names}.
