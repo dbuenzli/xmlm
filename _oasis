@@ -31,6 +31,16 @@ Executable xmltrip
  BuildDepends: xmlm
  CompiledObject: best
 
+Test charspace_1_0
+ Command: ../xmltrip.native charspace_1.0.xml
+ WorkingDirectory: test
+ TestTools: xmltrip
+
+Test charspace_1_1
+ Command: ../xmltrip.native charspace_1.1.xml
+ WorkingDirectory: test
+ TestTools: xmltrip
+
 Document api
  Title: Xmlm's documentation and API reference
  Type: ocamlbuild (0.3)
