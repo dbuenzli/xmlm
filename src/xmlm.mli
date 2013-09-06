@@ -6,7 +6,7 @@
 
 (** Streaming XML IO.  
 
-    A well-formed sequence of {{:#TYPEsignal}signals} represents an
+    A well-formed sequence of {{!signal}signals} represents an
     {{:http://www.w3.org/TR/REC-xml}XML} document tree traversal in
     depth first order (this has nothing to do with XML
     well-formedness). Input pulls a well-formed sequence of signals
@@ -14,7 +14,7 @@
     signals to a data destination. Functions are provided to easily 
     transform sequences of signals to/from arborescent data structures.
 
-    Consult the {{:#io}features and limitations} and {{:#ex}examples} 
+    Consult the {{!io}features and limitations} and {{!ex}examples} 
     of use.
 
     {e Release %%VERSION%% — %%MAINTAINER%% }
@@ -95,9 +95,9 @@ type error = [
   | `Unknown_encoding of string 
   (** Unknown encoding. *)
   | `Unknown_entity_ref of string 
-  (** Unknown entity reference, {{:#inentity} details}. *)
+  (** Unknown entity reference, {{!inentity} details}. *)
   | `Unknown_ns_prefix of string 
-  (** Unknown namespace prefix {{:#inns} details} *)
+  (** Unknown namespace prefix {{!inns} details} *)
   | `Illegal_char_ref of string 
   (** Illegal character reference. *)
   | `Illegal_char_seq of string 
@@ -128,22 +128,22 @@ val make_input : ?enc:encoding option -> ?strip:bool ->
 		 ?entity: (string -> string option) -> source -> input
 (** Returns a new input abstraction reading from the given source.
     {ul 
-    {- [enc], character encoding of the document, {{:#inenc} details}. 
+    {- [enc], character encoding of the document, {{!inenc} details}. 
        Defaults to [None].}
-    {- [strip], strips whitespace in character data, {{:#inwspace} details}.
+    {- [strip], strips whitespace in character data, {{!inwspace} details}.
        Defaults to [false].} 
     {- [ns] is called to bind undeclared namespace prefixes,
-       {{:#inns} details}. Default returns always [None].}
+       {{!inns} details}. Default returns always [None].}
     {- [entity] is called to resolve non predefined entity references,
-       {{:#inentity} details}. Default returns always [None].}} *)
+       {{!inentity} details}. Default returns always [None].}} *)
 
 val input : input -> signal
 (** Inputs a signal. Repeated invocation of the function with the same
-    input abstraction will generate a {{:#TYPEsignal}well-formed} sequence
+    input abstraction will generate a {{!signal}well-formed} sequence
     of signals or an {!Error} is raised. Furthermore there will be no
     two consecutive [`Data] signals in the sequence and their string
     is always non empty. After a well-formed sequence was input another may 
-    be input, see {!eoi} and {{:#iseq}details}.
+    be input, see {!eoi} and {{!iseq}details}.
 
     {b Raises} {!Error} on input errors. *)
 
@@ -168,7 +168,7 @@ val input_tree : el:(tag -> 'a list -> 'a) -> data:(string -> 'a)  ->
 
 val input_doc_tree : el:(tag -> 'a list -> 'a) -> data:(string -> 'a) -> 
                      input -> (dtd * 'a)
-(** Same as {!input_tree} but reads a complete {{:#TYPEsignal}well-formed}  
+(** Same as {!input_tree} but reads a complete {{!signal}well-formed}  
     sequence of signals. 
 
     {b Raises} {!Error} on input errors and [Invalid_argument]
@@ -180,7 +180,7 @@ val peek : input -> signal
     {b Raises} {!Error} on input errors. *)
 
 val eoi : input -> bool
-(** Returns [true] if the end of input is reached. See {{:#iseq}details}.
+(** Returns [true] if the end of input is reached. See {{!iseq}details}.
  
     {b Raises} {!Error} on input errors. *)
 
@@ -210,10 +210,10 @@ val make_output : ?decl:bool -> ?nl:bool -> ?indent:int option ->
     {- [nl], if [true] a newline is output when the root's element [`El_end] 
      signal is output.
     Defaults to [false].}
-    {- [indent], identation behaviour, see {{:#outindent} details}. Defaults to
+    {- [indent], identation behaviour, see {{!outindent} details}. Defaults to
       [None].}
     {- [ns_prefix], undeclared namespace prefix bindings, 
-       see {{:#outns}details}. Default returns always [None].}} *)
+       see {{!outns}details}. Default returns always [None].}} *)
 
 
 val output : output -> signal -> unit
@@ -221,7 +221,7 @@ val output : output -> signal -> unit
     output a new well-formed sequence can be output.
 
     {b Raises} [Invalid_argument] if the resulting signal sequence on
-    the output abstraction is not {{:#TYPEsignal}well-formed} or if a
+    the output abstraction is not {{!signal}well-formed} or if a
     namespace name could not be bound to a prefix. *)
 
 val output_depth : output -> int
@@ -235,7 +235,7 @@ val output_tree : ('a -> 'a frag) -> output -> 'a -> unit
     {b Raises} see {!output}. *)
 
 val output_doc_tree : ('a -> 'a frag) -> output -> (dtd * 'a) -> unit   
-(** Same as {!output_tree} but outputs a complete {{:#TYPEsignal}well-formed} 
+(** Same as {!output_tree} but outputs a complete {{!signal}well-formed} 
     sequence of signals.
 
     {b Raises} see {!output}. *)
@@ -440,7 +440,7 @@ with type string = String.t
     {{:http://www.w3.org/TR/REC-xml/#sec-line-ends}line ends} are
     translated to the newline character ([U+000A]).  {3:inns Namespaces}
 
-    Xmlm's {{:#TYPEname}names} are
+    Xmlm's {{!name}names} are
     {{:http://www.w3.org/TR/xml-names11/#dt-expname}expanded names}.
     The parser automatically handles the document's namespace
     declarations.  Undeclared namespace prefixes can be bound via the
@@ -458,6 +458,7 @@ with type string = String.t
     prefixes by documents, the parser does not report errors on violations 
     of the {i must} constraints listed in
     {{:http://www.w3.org/TR/xml-names11/#xmlReserved}this paragraph}. 
+
     {3:inentity Character and entity references}
 
     {{:http://www.w3.org/TR/REC-xml/#dt-charref}Character references}
