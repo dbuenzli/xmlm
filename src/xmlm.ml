@@ -1,5 +1,5 @@
 (*---------------------------------------------------------------------------
-   Copyright %%COPYRIGHT%%. All rights reserved.
+   Copyright 2007 Daniel C. Bünzli. All rights reserved.
    Distributed under a BSD3 license, see license at the end of the file.
    %%NAME%% release %%VERSION%%
   ---------------------------------------------------------------------------*)
@@ -1175,7 +1175,7 @@ end
 include Make(String) (Buffer)
     
 (*----------------------------------------------------------------------------
-  Copyright %%COPYRIGHT%%
+  Copyright 2007 Daniel C. Bünzli
   All rights reserved.
 
   Redistribution and use in source and binary forms, with or without

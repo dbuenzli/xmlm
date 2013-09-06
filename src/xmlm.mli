@@ -1,5 +1,5 @@
 (*---------------------------------------------------------------------------
-   Copyright %%COPYRIGHT%%. All rights reserved.
+   Copyright 2007 Daniel C. Bünzli. All rights reserved.
    Distributed under a BSD3 license, see license at the end of the file.
    %%NAME%% release %%VERSION%%
   ---------------------------------------------------------------------------*)
@@ -17,7 +17,7 @@
     Consult the {{:#io}features and limitations} and {{:#ex}examples} 
     of use.
 
-    {e Release %%VERSION%% - %%AUTHORS%% }
+    {e Release %%VERSION%% — %%MAINTAINER%% }
 
     {3 References}
     {ul
@@ -770,7 +770,7 @@ let out_w3c_bureaucrats dst bl =
 *)
 
 (*---------------------------------------------------------------------------
-  Copyright %%COPYRIGHT%%
+  Copyright 2007 Daniel C. Bünzli
   All rights reserved.
 
   Redistribution and use in source and binary forms, with or without
