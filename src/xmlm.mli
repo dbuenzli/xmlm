@@ -243,7 +243,10 @@ val output_doc_tree : ('a -> 'a frag) -> output -> (dtd * 'a) -> unit
 
     {b Raises} see {!output}. *)
 
-(** {1:sto Functorial interface} 
+(** {1:sto Functorial interface (deprecated)} 
+
+    {b WARNING.} The functioral interface is deprecated and will be 
+    removed.
 
     {!Make} allows client to specify types for strings and internal
     buffers. Among other things this can be used to perform
@@ -415,7 +418,7 @@ module Make (String : String) (Buffer : Buffer with type string = String.t) : S
     {{:http://www.faqs.org/rfcs/rfc2781.html} UTF-16BE} and
     {{:http://anubis.dkuug.dk/JTC1/SC2/WG3/docs/n411.pdf}ISO-8559-1} 
     (Latin-1) encoded documents. But strings returned by
-    the library are {b always} UTF-8 encoded (unless you use the functor). 
+    the library are {b always} UTF-8 encoded. 
     
     The encoding can be specified explicitly using the optional
     argument [enc]. Otherwise the parser uses UTF-16 or UTF-8 if there is a
@@ -468,7 +471,7 @@ module Make (String : String) (Buffer : Buffer with type string = String.t) : S
     and {{:http://www.w3.org/TR/REC-xml/#sec-predefined-ent}predefined
     entities} are automatically resolved. Other entity references can
     be resolved by the callback [entity], which must return an UTF-8
-    (unless you use the functor) string corresponding to the
+    string corresponding to the
     replacement character data.  The replacement data is {e not}
     analysed for further references, it is added to the data as such
     modulo white space stripping. If [entity] returns [None] the error
@@ -511,7 +514,7 @@ module Make (String : String) (Buffer : Buffer with type string = String.t) : S
     {{:http://www.w3.org/TR/REC-xml/#sec-rmd}standalone declaration}.}
     {- Element attributes are not checked for uniqueness.}
     {- Attribute and character data chunks are limited by 
-       [Sys.max_string_length] (unless you use the functor). 
+       [Sys.max_string_length]. 
        The error [`Max_buffer_size] is raised if the limit is hit.}
     {- Tail recursive.}
     {- Non validating.}
@@ -522,9 +525,8 @@ module Make (String : String) (Buffer : Buffer with type string = String.t) : S
     {3:outenc Encoding} 
 
     Outputs only {{:http://www.faqs.org/rfcs/rfc3629.html} UTF-8}
-    encoded documents (even if you use the functor).  Strings given to
-    output functions {b must be} UTF-8 encoded (unless you use the
-    functor, but you need to provide a translation), no checks are
+    encoded documents.  Strings given to
+    output functions {b must be} UTF-8 encoded, no checks are
     performed. Unicode characters that are not legal XML
     {{:http://www.w3.org/TR/REC-xml/#NT-Char}characters} are replaced
     by the {{:http://unicode.org/glossary/#replacement_character}Unicode 
