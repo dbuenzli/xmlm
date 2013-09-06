@@ -5,7 +5,7 @@ Release %%VERSION%%
 Xmlm is a streaming codec to decode and encode the XML data format. It
 can process XML documents without a complete in-memory representation of the
 data.
-.
+
 Xmlm is made of a single independent module and distributed
 under the BSD3 license.
 
@@ -42,7 +42,7 @@ be built with :
 ways. It is useful to understand how Xmlm handles documents. `xmltrip
 -help` has more information.
 
-If you need to parse XHTML, there is a file named `xhtml.ml` in the
-`test` directory. It contains an OCaml list coupling each XHTML
-character entity with its corresponding UTF-8 encoded character
-string. You can use it to program a suitable entity callback.
+If you need to parse XHTML, the file [`xhtml.ml`](test/xhtml.ml) in
+the `test` directory has an OCaml list coupling each XHTML character
+entity with its corresponding UTF-8 encoded character string. You can
+use it to program a suitable entity callback.
