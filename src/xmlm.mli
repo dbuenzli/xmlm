@@ -73,7 +73,7 @@ child ::= `Data | tree | epsilon ]}
 val ns_xml : string 
 (** Namespace name {{:http://www.w3.org/XML/1998/namespace}value} bound to the 
     reserved ["xml"] prefix. *)
-
+  
 val ns_xmlns : string
 (** Namespace name {{:http://www.w3.org/2000/xmlns/}value} bound to the 
     reserved ["xmlns"] prefix. *)
@@ -124,8 +124,8 @@ type input
 (** The type for input abstractions. *)
 
 val make_input : ?enc:encoding option -> ?strip:bool -> 
-                 ?ns:(string -> string option) -> 
-		 ?entity: (string -> string option) -> source -> input
+  ?ns:(string -> string option) -> 
+  ?entity: (string -> string option) -> source -> input
 (** Returns a new input abstraction reading from the given source.
     {ul 
     {- [enc], character encoding of the document, {{!inenc} details}. 
@@ -136,19 +136,21 @@ val make_input : ?enc:encoding option -> ?strip:bool ->
        {{!inns} details}. Default returns always [None].}
     {- [entity] is called to resolve non predefined entity references,
        {{!inentity} details}. Default returns always [None].}} *)
-
+  
 val input : input -> signal
 (** Inputs a signal. Repeated invocation of the function with the same
     input abstraction will generate a {{!signal}well-formed} sequence
     of signals or an {!Error} is raised. Furthermore there will be no
     two consecutive [`Data] signals in the sequence and their string
-    is always non empty. After a well-formed sequence was input another may 
+    is always non empty. 
+    
+    After a well-formed sequence was input another may 
     be input, see {!eoi} and {{!iseq}details}.
-
+    
     {b Raises} {!Error} on input errors. *)
-
+  
 val input_tree : el:(tag -> 'a list -> 'a) -> data:(string -> 'a)  -> 
-                 input -> 'a
+  input -> 'a
 (** If the next signal is a :
     {ul
     {- [`Data] signal, inputs it and invokes [data] with the character data.}
@@ -167,21 +169,21 @@ val input_tree : el:(tag -> 'a list -> 'a) -> data:(string -> 'a)  ->
       if the next signal is not [`El_start] or [`Data]. *)
 
 val input_doc_tree : el:(tag -> 'a list -> 'a) -> data:(string -> 'a) -> 
-                     input -> (dtd * 'a)
+  input -> (dtd * 'a)
 (** Same as {!input_tree} but reads a complete {{!signal}well-formed}  
     sequence of signals. 
-
+    
     {b Raises} {!Error} on input errors and [Invalid_argument]
      if the next signal is not [`Dtd]. *)
-    
+           
 val peek : input -> signal
 (** Same as {!input} but doesn't remove the signal from the sequence. 
-
+    
     {b Raises} {!Error} on input errors. *)
-
+  
 val eoi : input -> bool
 (** Returns [true] if the end of input is reached. See {{!iseq}details}.
- 
+    
     {b Raises} {!Error} on input errors. *)
 
 val pos : input -> pos 
@@ -192,17 +194,17 @@ val pos : input -> pos
 type 'a frag = [ `El of tag * 'a list | `Data of string ]
 (** The type for deconstructing data structures of type ['a]. *)
 
-type dest = [ `Channel of out_channel | `Buffer of Buffer.t | 
-              `Fun of (int -> unit) ]
+type dest = [ `Channel of out_channel | `Buffer of Buffer.t 
+            | `Fun of (int -> unit) ]
 (** The type for output destinations. For [`Buffer], the buffer won't
     be cleared. For [`Fun] the function is called with the output {e
     bytes} as [int]s. *)
-
+            
 type output
 (** The type for output abstractions. *)
-
+  
 val make_output : ?decl:bool -> ?nl:bool -> ?indent:int option -> 
-                  ?ns_prefix:(string -> string option) -> dest -> output
+  ?ns_prefix:(string -> string option) -> dest -> output
 (** Returns a new output abstraction writing to the given destination.
     {ul 
     {- [decl], if [true] the {{:http://www.w3.org/TR/REC-xml/#NT-XMLDecl} XML
@@ -215,7 +217,6 @@ val make_output : ?decl:bool -> ?nl:bool -> ?indent:int option ->
     {- [ns_prefix], undeclared namespace prefix bindings, 
        see {{!outns}details}. Default returns always [None].}} *)
 
-
 val output : output -> signal -> unit
 (** Outputs a signal. After a well-formed sequence of signals was 
     output a new well-formed sequence can be output.
@@ -227,13 +228,13 @@ val output : output -> signal -> unit
 val output_depth : output -> int
 (** [output_depth o] is [o]'s current element nesting level (undefined
     before the first [`El_start] and after the last [`El_end]). *)
-
+  
 val output_tree : ('a -> 'a frag) -> output -> 'a -> unit
 (** Outputs signals corresponding to a value by recursively
     applying the given value deconstructor.
-
+    
     {b Raises} see {!output}. *)
-
+  
 val output_doc_tree : ('a -> 'a frag) -> output -> (dtd * 'a) -> unit   
 (** Same as {!output_tree} but outputs a complete {{!signal}well-formed} 
     sequence of signals.
@@ -255,13 +256,13 @@ module type String = sig
   
   type t
   (** The type for strings. *)
-
+    
   val empty : t
   (** The empty string. *)
-	
+  
   val length : t -> int
   (** Returns the length of the string. *)
-	
+  
   val append : t -> t -> t
   (** Concatenates two strings. *)
 
@@ -291,13 +292,13 @@ module type Buffer = sig
 
   type string
   (** The type for strings. *)
-	
+    
   type t 
   (** The type for buffers. *)
 
   exception Full
   (** Raised if the buffer cannot be grown. *)
-	  
+    
   val create : int -> t
   (** Creates a buffer of the given size. *)
 
@@ -310,7 +311,7 @@ module type Buffer = sig
 
   val clear : t -> unit
   (** Clears the buffer. *)
-
+    
   val contents : t -> string
   (** Returns the buffer contents. *)
   
@@ -324,7 +325,7 @@ module type S = sig
   (** {1 Basic types and values} *)  
 
   type string 
-
+    
   type encoding = [ 
     | `UTF_8 | `UTF_16 | `UTF_16BE | `UTF_16LE | `ISO_8859_1| `US_ASCII ]
   type dtd = string option
@@ -332,7 +333,7 @@ module type S = sig
   type attribute = name * string
   type tag = name * attribute list
   type signal = [ `Dtd of dtd | `El_start of tag | `El_end | `Data of string ]
-	
+  
   val ns_xml : string 
   val ns_xmlns : string
       
@@ -340,17 +341,17 @@ module type S = sig
 
   type pos = int * int 
   type error = [
-    | `Max_buffer_size			
+    | `Max_buffer_size      
     | `Unexpected_eoi
     | `Malformed_char_stream
     | `Unknown_encoding of string
-    | `Unknown_entity_ref of string				 
-    | `Unknown_ns_prefix of string				
+    | `Unknown_entity_ref of string        
+    | `Unknown_ns_prefix of string        
     | `Illegal_char_ref of string 
     | `Illegal_char_seq of string 
     | `Expected_char_seqs of string list * string
     | `Expected_root_element ]
-	
+  
   exception Error of pos * error
   val error_message : error -> string
 
@@ -360,33 +361,33 @@ module type S = sig
   | `Fun of (unit -> int) ]
 
   type input
-
-  val make_input : ?enc:encoding option -> ?strip:bool -> 
-                   ?ns:(string -> string option) -> 
-		   ?entity: (string -> string option) -> source -> input
-
-  val input : input -> signal
-
-  val input_tree : el:(tag -> 'a list -> 'a) -> data:(string -> 'a)  -> 
-                   input -> 'a
-
-  val input_doc_tree : el:(tag -> 'a list -> 'a) -> data:(string -> 'a) -> 
-                       input -> (dtd * 'a)
     
+  val make_input : ?enc:encoding option -> ?strip:bool -> 
+    ?ns:(string -> string option) -> 
+    ?entity: (string -> string option) -> source -> input
+    
+  val input : input -> signal
+    
+  val input_tree : el:(tag -> 'a list -> 'a) -> data:(string -> 'a)  -> 
+    input -> 'a
+    
+  val input_doc_tree : el:(tag -> 'a list -> 'a) -> data:(string -> 'a) -> 
+    input -> (dtd * 'a)
+             
   val peek : input -> signal
   val eoi : input -> bool
   val pos : input -> pos 
-
+    
   (** {1 Output} *)
-
+    
   type 'a frag = [ `El of tag * 'a list | `Data of string ]
   type dest = [ 
     | `Channel of out_channel | `Buffer of std_buffer | `Fun of (int -> unit) ]
-
+  
   type output
   val make_output : ?decl:bool -> ?nl:bool -> ?indent:int option -> 
-                    ?ns_prefix:(string -> string option) -> dest -> output
-
+    ?ns_prefix:(string -> string option) -> dest -> output
+    
   val output_depth : output -> int
   val output : output -> signal -> unit
   val output_tree : ('a -> 'a frag) -> output -> 'a -> unit
@@ -395,8 +396,8 @@ end
 
 (** Functor building streaming XML IO with the given strings and buffers. *)
 module Make (String : String) (Buffer : Buffer with type string = String.t) : S
-with type string = String.t
-
+  with type string = String.t
+                       
 (** {1:io Features and limitations}
     
     The module assumes strings are immutable, thus strings

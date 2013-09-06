@@ -16,12 +16,12 @@ let id ic oc =
   Xmlm.output o (Xmlm.input i); (* `Dtd *)
   pull i o 0;
   if not (Xmlm.eoi i) then invalid_arg "document not well-formed"
-
+      
 let id_seq ic oc = 
   let i = Xmlm.make_input (`Channel ic) in 
   let o = Xmlm.make_output ~nl:true (`Channel oc) in 
   while not (Xmlm.eoi i) do Xmlm.output o (Xmlm.input i) done
-
+  
 let prune_docs prune_list ic oc = 
   let i = Xmlm.make_input (`Channel ic) in
   let o = Xmlm.make_output ~nl:true (`Channel oc) in
@@ -47,32 +47,32 @@ let prune_docs prune_list ic oc =
     if Xmlm.eoi i then () else docs i o
   in
   docs i o
-
+    
 (* Tree processing *)
-
+    
 type tree = E of Xmlm.tag * tree list | D of string
-
+              
 let in_tree i = 
   let el tag childs = E (tag, childs)  in
   let data d = D d in
   Xmlm.input_doc_tree ~el ~data i
-
+    
 let out_tree o t = 
   let frag = function
   | E (tag, childs) -> `El (tag, childs) 
   | D d -> `Data d 
   in
   Xmlm.output_doc_tree frag o t
-
+    
 (* Tabular data processing. *)
-
-type w3c_bureaucrat = { 
-    name : string; 
+    
+type w3c_bureaucrat = 
+  { name : string; 
     surname : string; 
     honest : bool; 
     obfuscation_level : float;
     trs : string list; }
-
+  
 let in_w3c_bureaucrats src = 
   let i = Xmlm.make_input ~strip:true src in
   let tag n = ("", n), [] in
@@ -116,7 +116,7 @@ let in_w3c_bureaucrats src =
   accept (`El_end) i;
   if not (Xmlm.eoi i) then invalid_arg "more than one document";
   bl
-
+  
 let out_w3c_bureaucrats dst bl = 
   let tag n = ("", n), [] in
   let o = Xmlm.make_output ~nl:true ~indent:(Some 2) dst in
@@ -139,4 +139,3 @@ let out_w3c_bureaucrats dst bl =
   out (`El_start (tag "list"));
   List.iter o_bureaucrat bl;
   out (`El_end)
-
