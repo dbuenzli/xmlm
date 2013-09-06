@@ -144,7 +144,7 @@ val input : input -> signal
     two consecutive [`Data] signals in the sequence and their string
     is always non empty. 
     
-    After a well-formed sequence was input another may 
+    {b Deprecated} After a well-formed sequence was input another may 
     be input, see {!eoi} and {{!iseq}details}.
     
     {b Raises} {!Error} on input errors. *)
@@ -218,8 +218,10 @@ val make_output : ?decl:bool -> ?nl:bool -> ?indent:int option ->
        see {{!outns}details}. Default returns always [None].}} *)
 
 val output : output -> signal -> unit
-(** Outputs a signal. After a well-formed sequence of signals was 
-    output a new well-formed sequence can be output.
+(** Outputs a signal. 
+
+    {b Deprecated.} After a well-formed sequence of signals was output
+    a new well-formed sequence can be output.
 
     {b Raises} [Invalid_argument] if the resulting signal sequence on
     the output abstraction is not {{!signal}well-formed} or if a
@@ -471,7 +473,10 @@ module Make (String : String) (Buffer : Buffer with type string = String.t) : S
     analysed for further references, it is added to the data as such
     modulo white space stripping. If [entity] returns [None] the error
     [`Unknown_entity_ref] is returned.    
-    {3:iseq Sequences of documents}
+
+    {3:iseq Sequences of documents (deprecated)}
+
+    {b WARNING.} This feature is deprecated and will be removed.
 
     When a well-formed sequence of signals is input, no data is consumed beyond
     the closing ['>'] of the document's root element. 
@@ -564,7 +569,10 @@ let ex_ns = (Xmlm.ns_xmlns, "ex"), "http://example.org/ex"]}
        (for empty elements [`El_start] and [`El_end] are collapsed on a single
        line) and nested elements are indented with [c] space
        characters.
-    {3:oseq Sequences of documents} 
+
+    {3:oseq Sequences of documents (deprecated)} 
+
+    {b WARNING.} This feature is deprecated and will be removed.
 
     After a well-formed sequence of signals was output, the output
     abstraction can be reused to output a new well-formed sequence of
