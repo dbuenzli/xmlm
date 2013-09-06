@@ -1,3 +1,15 @@
+v1.2.0 2013-09-06 Cambridge (UK) 
+--------------------------------
+
+- `Xmlm.output`, illegal XML Unicode characters in [`Data] signals or 
+  attribute values are output as U+FFFD (thanks to David Sheets for
+  insisting that something should be done about that).
+- Deprecate the ability to IO multiple documents from the same
+  IO abstraction.
+- Deprecate the functorial interface.
+- OPAM friendly workflow and drop OASIS support.
+      
+
 v1.1.1 2012-08-05 Lausanne
 --------------------------
 

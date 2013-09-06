@@ -4,7 +4,7 @@
    %%NAME%% release %%VERSION%%
   ---------------------------------------------------------------------------*)
 
-(** Streaming XML IO.  
+(** Streaming XML codec.  
 
     A well-formed sequence of {{!signal}signals} represents an
     {{:http://www.w3.org/TR/REC-xml}XML} document tree traversal in
@@ -520,7 +520,6 @@ module Make (String : String) (Buffer : Buffer with type string = String.t) : S
     {- Non validating.}
     }
     
-
     {2:output Output} 
     {3:outenc Encoding} 
 
