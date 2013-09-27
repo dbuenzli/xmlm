@@ -6,6 +6,7 @@ doc: "http://erratique.ch/software/xmlm/doc/Xmlm"
 tags: [ "xml" "codec" ]
 license: "BSD3"
 ocaml-version: [>= "4.00.0"]
+depends: [ "ocamlfind" ]
 build: 
 [
   ["./pkg/pkg-git" ]
