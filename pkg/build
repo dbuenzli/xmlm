@@ -11,6 +11,7 @@ NATIVE=$1
 
 add lib pkg/META                
 add lib src/xmlm.mli      
+add lib src/xmlm.cmti      
 add lib src/xmlm.cmi
 add lib src/xmlm.cmx
 add lib src/xmlm.cma

@@ -5,7 +5,7 @@ authors: ["Daniel Bünzli <daniel.buenzl i@erratique.ch>"]
 doc: "http://erratique.ch/software/xmlm/doc/Xmlm"
 tags: [ "xml" "codec" ]
 license: "BSD3"
-ocaml-version: [>= "4.00.0"]
+ocaml-version: [>= "4.01.0"]
 depends: [ "ocamlfind" ]
 build: 
 [
