@@ -204,7 +204,7 @@ type output
 (** The type for output abstractions. *)
   
 val make_output : ?decl:bool -> ?nl:bool -> ?indent:int option -> 
-  ?ns_prefix:(string -> string option) -> dest -> output
+  ?ns_prefix:(string -> string option) -> ?compact:bool -> dest -> output
 (** Returns a new output abstraction writing to the given destination.
     {ul 
     {- [decl], if [true] the {{:http://www.w3.org/TR/REC-xml/#NT-XMLDecl} XML
@@ -212,10 +212,12 @@ val make_output : ?decl:bool -> ?nl:bool -> ?indent:int option ->
     {- [nl], if [true] a newline is output when the root's element [`El_end] 
      signal is output.
     Defaults to [false].}
-    {- [indent], identation behaviour, see {{!outindent} details}. Defaults to
+    {- [indent], indentation behaviour, see {{!outindent} details}. Defaults to
       [None].}
     {- [ns_prefix], undeclared namespace prefix bindings, 
-       see {{!outns}details}. Default returns always [None].}} *)
+       see {{!outns}details}. Default returns always [None].}
+    {- [compact], output self-closing tags if their body is empty. Defaults to
+       [true].}} *)
 
 val output : output -> signal -> unit
 (** Outputs a signal. 
@@ -391,7 +393,7 @@ module type S = sig
   
   type output
   val make_output : ?decl:bool -> ?nl:bool -> ?indent:int option -> 
-    ?ns_prefix:(string -> string option) -> dest -> output
+    ?ns_prefix:(string -> string option) -> ?compact:bool -> dest -> output
     
   val output_depth : output -> int
   val output : output -> signal -> unit

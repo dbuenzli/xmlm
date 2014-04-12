@@ -91,7 +91,7 @@ module type S = sig
   
   type output
   val make_output : ?decl:bool -> ?nl:bool -> ?indent:int option -> 
-    ?ns_prefix:(string -> string option) -> dest -> output
+    ?ns_prefix:(string -> string option) -> ?compact:bool -> dest -> output
     
   val output_depth : output -> int
   val output : output -> signal -> unit
@@ -943,6 +943,7 @@ struct
     { decl : bool;          (* True if the XML declaration should be output. *)
       nl : bool;                  (* True if a newline is output at the end. *)
       indent : int option;                          (* Optional indentation. *)
+      compact : bool;                                (* Output compact tags. *)
       fun_prefix : string -> string option;              (* Prefix callback. *)
       prefixes : string Ht.t;                     (* uri -> prefix bindings. *)
       outs : std_string -> int -> int -> unit;             (* String output. *)
@@ -959,7 +960,7 @@ struct
   let err_data = "data signal not allowed here"
     
   let make_output ?(decl = true) ?(nl = false) ?(indent = None) 
-      ?(ns_prefix = fun _ ->None) d =
+      ?(ns_prefix = fun _ ->None) ?(compact=true) d =
     let outs, outc = match d with 
     | `Channel c -> (output c), (output_char c)
     | `Buffer b -> (Std_buffer.add_substring b), (Std_buffer.add_char b)
@@ -979,7 +980,7 @@ struct
     in
     { decl = decl; outs = outs; outc = outc; nl = nl; indent = indent; 
       last_el_start = false; prefixes = prefixes; scopes = []; depth = -1; 
-      fun_prefix = ns_prefix; }
+      fun_prefix = ns_prefix; compact = compact }
     
   let output_depth o = o.depth
   let outs o s = o.outs s 0 (Std_string.length s)
@@ -1074,8 +1075,12 @@ struct
         begin match o.scopes with
         | (n, uris) :: scopes' ->
             o.depth <- o.depth - 1;
-            if o.last_el_start then outs o "/>" else
-            begin 
+            if o.last_el_start then begin
+              if o.compact then outs o "/>" 
+              else begin
+                outs o "></"; out_qname o n; o.outc '>';
+              end
+            end else begin 
               indent o;
               outs o "</"; out_qname o n; o.outc '>';
             end;
