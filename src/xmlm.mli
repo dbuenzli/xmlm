@@ -78,6 +78,25 @@ val ns_xmlns : string
 (** Namespace name {{:http://www.w3.org/2000/xmlns/}value} bound to the
     reserved ["xmlns"] prefix. *)
 
+val pp_dtd : Format.formatter -> dtd -> unit
+(** [pp_dtd ppf dtd] prints an unspecified representation of [dtd] on [ppf]. *)
+
+val pp_name : Format.formatter -> name -> unit
+(** [pp_name ppf name] prints an unspecified representation of [name] on
+    [ppf]. *)
+
+val pp_attribute : Format.formatter -> attribute -> unit
+(** [pp_attribute ppf att] prints an unspecified representation of [att] on
+    [ppf]. *)
+
+val pp_tag : Format.formatter -> tag -> unit
+(** [pp_tag ppf tag] prints an unspecified representation of [tag] on
+    [ppf]. *)
+
+val pp_signal : Format.formatter -> signal -> unit
+(** [pp_signal ppf s] prints an unspecified representation of [s] on
+    [ppf]. *)
+
 (** {1 Input} *)
 
 type pos = int * int

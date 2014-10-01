@@ -1173,6 +1173,31 @@ end
 
 include Make(String) (Buffer)
 
+(* Pretty printers *)
+
+let pp = Format.fprintf
+let rec pp_list ?(pp_sep = Format.pp_print_cut) pp_v ppf = function
+| [] -> ()
+| v :: vs ->
+    pp_v ppf v; if vs <> [] then (pp_sep ppf (); pp_list ~pp_sep pp_v ppf vs)
+
+let pp_name ppf (p, l) = if p <> "" then pp ppf "%s:%s" p l else pp ppf "%s" l
+let pp_attribute ppf (n, v) = pp ppf "@[<1>(%a,@,%S)@]" pp_name n v
+let pp_tag ppf (name, atts) =
+  let pp_sep ppf () = pp ppf ";@ " in
+  pp ppf "@[<1>(%a,@,@[<1>[%a]@])@]"
+    pp_name name (pp_list ~pp_sep pp_attribute) atts
+
+let pp_dtd ppf = function
+| None -> pp ppf "None"
+| Some dtd -> pp ppf "@[<1>(Some@ %S)@]" dtd
+
+let pp_signal ppf = function
+| `Data s -> pp ppf "@[`Data %S@]" s
+| `El_end -> pp ppf "`El_end"
+| `El_start tag -> pp ppf "@[`El_start %a@]" pp_tag tag
+| `Dtd dtd -> pp ppf "@[`Dtd %a@]" pp_dtd dtd
+
 (*----------------------------------------------------------------------------
   Copyright 2007 Daniel C. Bünzli
   All rights reserved.

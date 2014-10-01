@@ -47,20 +47,12 @@ let xml_parse tree enc strip entity ns ic () =                (* parse only *)
   with Xmlm.Error (p, e) -> fail (p, e)
 
 let xml_signals _ enc strip entity ns ic _ =           (* output signals *)
-  let pr s = Printf.fprintf stdout s in
   let i = Xmlm.make_input ~enc ~strip ~entity ~ns (`Channel ic) in
-  let out_signal s = match s with
-  | `Dtd None -> pr "`DTD None\n"
-  | `Dtd Some d -> pr "`DTD Some(%S)\n" d
-  | `El_start (n, atts) ->
-      let pr_name (p, l) =  if p <> "" then pr "%s:%s" p l else pr "%s" l in
-      let pr_att (n, v) = pr "("; pr_name n; pr ", %S); " v in
-      pr "`El_start (";
-      pr_name n; pr ", ["; List.iter pr_att atts; pr "])\n"
-  | `El_end -> pr "`El_end\n"
-  | `Data d -> pr "`Data (%S)\n" d
-  in
-  try while not (Xmlm.eoi i) do out_signal (Xmlm.input i); done
+  let pp_signal s = Format.printf "@[%a@]@," Xmlm.pp_signal s in
+  try
+    Format.printf "@[<v>";
+    while not (Xmlm.eoi i) do pp_signal (Xmlm.input i); done;
+    Format.printf "@]";
   with Xmlm.Error (p, e) -> fail (p, e)
 
 let xml_outline tree enc strip entity ns ic oc =            (* ascii outline *)
