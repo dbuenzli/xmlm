@@ -7,52 +7,52 @@
 let str = Printf.sprintf
 let exec = Filename.basename Sys.executable_name
 let pr_err s = Printf.eprintf "%s:%s\n" exec s
-let apply f x ~finally y = 
+let apply f x ~finally y =
   let result = try f x with exn -> finally y; raise exn in
   finally y;
   result
-  
+
 let fail ((l, c), e) = failwith (str "%d:%d: %s" l c (Xmlm.error_message e))
-    
+
 type tree = E of Xmlm.tag * tree list | D of string
-              
-let in_tree i = 
+
+let in_tree i =
   let el tag childs = E (tag, childs)  in
   let data d = D d in
   Xmlm.input_doc_tree ~el ~data i
-    
-let out_tree o t = 
+
+let out_tree o t =
   let frag = function
-  | E (tag, childs) -> `El (tag, childs) 
-  | D d -> `Data d 
+  | E (tag, childs) -> `El (tag, childs)
+  | D d -> `Data d
   in
   Xmlm.output_doc_tree frag o t
-    
+
 let xml_parse tree enc strip entity ns ic () =                (* parse only *)
   let i = Xmlm.make_input ~enc ~strip ~entity ~ns (`Channel ic) in
-  let doc i = 
+  let doc i =
     if tree then ignore (in_tree i) else
-    begin 
+    begin
       let rec pull i l = match Xmlm.input i with
       | `El_start _ -> pull i (l + 1)
       | `El_end -> if l = 1 then () else pull i (l - 1)
-      | `Data _ -> pull i l 
+      | `Data _ -> pull i l
       | `Dtd _ -> assert false
       in
       ignore (Xmlm.input i); (* `Dtd *)
       pull i 0;
     end
   in
-  try while not (Xmlm.eoi i) do doc i done 
+  try while not (Xmlm.eoi i) do doc i done
   with Xmlm.Error (p, e) -> fail (p, e)
-                              
+
 let xml_signals _ enc strip entity ns ic _ =           (* output signals *)
   let pr s = Printf.fprintf stdout s in
-  let i = Xmlm.make_input ~enc ~strip ~entity ~ns (`Channel ic) in 
+  let i = Xmlm.make_input ~enc ~strip ~entity ~ns (`Channel ic) in
   let out_signal s = match s with
   | `Dtd None -> pr "`DTD None\n"
   | `Dtd Some d -> pr "`DTD Some(%S)\n" d
-  | `El_start (n, atts) -> 
+  | `El_start (n, atts) ->
       let pr_name (p, l) =  if p <> "" then pr "%s:%s" p l else pr "%s" l in
       let pr_att (n, v) = pr "("; pr_name n; pr ", %S); " v in
       pr "`El_start (";
@@ -62,7 +62,7 @@ let xml_signals _ enc strip entity ns ic _ =           (* output signals *)
   in
   try while not (Xmlm.eoi i) do out_signal (Xmlm.input i); done
   with Xmlm.Error (p, e) -> fail (p, e)
-  
+
 let xml_outline tree enc strip entity ns ic oc =            (* ascii outline *)
   let pr s = Printf.fprintf oc s in
   let pr_dtd dtd = match dtd with Some s -> pr "+-DTD %S\n" s | _ -> () in
@@ -70,18 +70,18 @@ let xml_outline tree enc strip entity ns ic oc =            (* ascii outline *)
   let pr_data d data = pr_depth d; pr "%S\n" data in
   let pr_name c (p, l) =  if p <> "" then pr "%s:%s" p l else pr "%s" l in
   let pr_att d (n, v) = pr_depth (d + 1); pr "* %a = %S\n" pr_name n v in
-  let pr_tag d (n, atts) = 
-    pr_depth d; pr "+-%a\n" pr_name n; List.iter (pr_att d) atts 
+  let pr_tag d (n, atts) =
+    pr_depth d; pr "+-%a\n" pr_name n; List.iter (pr_att d) atts
   in
   let i = Xmlm.make_input ~enc ~strip ~entity ~ns (`Channel ic) in
-  let doc i = 
-    if tree then 
-      begin 
+  let doc i =
+    if tree then
+      begin
         let rec pr_tree d = function
-        | (n :: next) :: path -> 
+        | (n :: next) :: path ->
             begin match n with
             | D data -> pr_data d data; pr_tree d (next :: path)
-            | E (tag, childs) -> 
+            | E (tag, childs) ->
                 pr_tag d tag; pr_tree (d+1) (childs :: next :: path)
             end
         | [] :: path -> if d = 0 then () else pr_tree (d - 1) path
@@ -92,12 +92,12 @@ let xml_outline tree enc strip entity ns ic oc =            (* ascii outline *)
         pr_tree 0 ([t] :: [])
       end
     else
-    begin 
+    begin
       let rec pull i l = match Xmlm.input i with
       | `El_start tag -> pr_tag l tag; pull i (l + 1)
       | `El_end -> if l = 1 then () else pull i (l - 1)
       | `Data d -> pr_data l d; pull i l
-      | `Dtd _ -> assert false 
+      | `Dtd _ -> assert false
       in
       pr_dtd (match Xmlm.input i with `Dtd d -> d | _ -> assert false);
       pull i 0;
@@ -106,92 +106,92 @@ let xml_outline tree enc strip entity ns ic oc =            (* ascii outline *)
   in
   try while not (Xmlm.eoi i) do doc i done
   with Xmlm.Error (p, e) -> fail (p, e)
-                              
+
 let xml_xml indent tree enc strip entity ns ic oc =              (* xml trip *)
   let nl = (indent = None) in
   let i = Xmlm.make_input ~enc ~strip ~ns ~entity (`Channel ic) in
   let o = Xmlm.make_output ~nl ~indent ~ns_prefix:ns (`Channel oc) in
-  let doc i o = 
+  let doc i o =
     if tree then (out_tree o (in_tree i)) else
-    begin 
-      let rec pull i o depth = 
+    begin
+      let rec pull i o depth =
         let s = Xmlm.input i in
         Xmlm.output o s;
-        match s with 
+        match s with
         | `El_start _ -> pull i o (depth + 1)
         | `El_end -> if depth = 1 then () else pull i o (depth - 1)
-        | `Data _ -> pull i o depth 
+        | `Data _ -> pull i o depth
         | `Dtd _ -> assert false
       in
       Xmlm.output o (Xmlm.input i); (* `Dtd *)
       pull i o 0
     end
   in
-  try while not (Xmlm.eoi i) do doc i o done 
+  try while not (Xmlm.eoi i) do doc i o done
   with Xmlm.Error (p, e) -> fail (p, e)
-                              
-let with_inf f inf v = 
+
+let with_inf f inf v =
   try
-    let ic = if inf <> "" then open_in_bin inf else stdin in 
-    let close ic = if inf <> "" then close_in ic else () in 
+    let ic = if inf <> "" then open_in_bin inf else stdin in
+    let close ic = if inf <> "" then close_in ic else () in
     apply (f ic) v ~finally:close ic
   with
   | Sys_error e -> pr_err (str " %s" e)
   | Failure e -> pr_err (str "%s:%s" inf e)
-                   
-let with_outf f ic outf = 
-  try 
-    let oc = if outf <> "" then open_out_bin outf else stdout in 
-    let close oc = if outf <> "" then close_out oc else () in 
+
+let with_outf f ic outf =
+  try
+    let oc = if outf <> "" then open_out_bin outf else stdout in
+    let close oc = if outf <> "" then close_out oc else () in
     apply (f ic) oc ~finally:close oc
   with
   | Sys_error e -> pr_err (str " %s" e)
-                     
-let entity_fun eref xhtml = 
+
+let entity_fun eref xhtml =
   if not xhtml then (if eref then fun x -> Some x else fun x -> None) else
   let h = Hashtbl.create 270 in
   List.iter (fun (e, ustr) -> Hashtbl.add h e ustr) Xhtml.entities;
   if eref then (fun x -> try Some (Hashtbl.find h x) with Not_found -> Some x)
   else (fun x -> try Some (Hashtbl.find h x) with Not_found -> None)
-    
-let process signals tree enc strip eref ns xhtml parse_only outline indent 
-    suffix files = 
+
+let process signals tree enc strip eref ns xhtml parse_only outline indent
+    suffix files =
   let entity = entity_fun eref xhtml in
   let ns = if ns then fun x -> Some x else fun x -> None in
-  let f = 
-    if parse_only then 
+  let f =
+    if parse_only then
       fun inf -> with_inf (xml_parse tree enc strip entity ns) inf ()
-    else 
-    let outf inf =  
-      if inf = "" || suffix = "" then "" (* stdout *) else 
-      str "%s.%s" inf suffix 
+    else
+    let outf inf =
+      if inf = "" || suffix = "" then "" (* stdout *) else
+      str "%s.%s" inf suffix
     in
-    let f = 
-      if outline then xml_outline else 
+    let f =
+      if outline then xml_outline else
       if signals then xml_signals else
-      (xml_xml indent) 
+      (xml_xml indent)
     in
-    fun inf -> 
+    fun inf ->
       with_inf (with_outf (f tree enc strip entity ns)) inf (outf inf)
   in
   List.iter f files
-    
+
 let encoding_of_str enc = match (String.lowercase enc) with
 | "" -> None
 | "utf-8" | "utf8" | "utf_8" -> Some `UTF_8
 | "utf-16" | "utf16" | "utf_16" -> Some `UTF_16
 | "utf-16be" | "utf16be" | "utf16_be" -> Some `UTF_16BE
 | "utf-16le" | "utf16le" | "utf16_le" -> Some `UTF_16LE
-| "iso-8859-1" | "iso88591" 
-| "iso_8859_1" | "latin1" | "latin-1" -> Some `ISO_8859_1 
+| "iso-8859-1" | "iso88591"
+| "iso_8859_1" | "latin1" | "latin-1" -> Some `ISO_8859_1
 | "ascii" | "us-ascii" -> Some `US_ASCII
 | e -> pr_err (str "unknown encoding '%s', trying to guess." e); None
-    
-let main () = 
-  let usage = 
+
+let main () =
+  let usage =
     str "Usage: %s <options> <files>\n\
          Reads xml files and outputs them on stdout.\n\
-         Options:" exec 
+         Options:" exec
   in
   let enc = ref "" in
   let strip = ref false in
@@ -207,10 +207,10 @@ let main () =
   let files = ref [] in
   let add_file s = files := s :: !files in
   let options = [
-    "-enc", Arg.Set_string enc, 
+    "-enc", Arg.Set_string enc,
     "<enc>, use specified encoding, utf-8, utf-16, utf-16be, utf-16le,\n\
     \   iso-8859-1, ascii (otherwise guesses).";
-    "-strip", Arg.Set strip, 
+    "-strip", Arg.Set strip,
     "strip and collapse white space in character data.";
     "-ns", Arg.Set ns,
     "replace unbound namespaces prefixes by themselves (on input and output).";
@@ -218,13 +218,13 @@ let main () =
     "replace unknown entity references by their name.";
     "-xhtml", Arg.Set xhtml,
     "resolve XHTML character entities.";
-    "-p", Arg.Set parse_only, 
+    "-p", Arg.Set parse_only,
     "parse only, no output.";
-    "-t", Arg.Set tree, 
+    "-t", Arg.Set tree,
     "build document tree in memory.";
     "-signals", Arg.Set signals,
     "outputs the stream of signals instead of xml (excludes -t).";
-    "-ot", Arg.Set outline, 
+    "-ot", Arg.Set outline,
     "output document ascii outline instead of xml.";
     "-indent", Arg.Set indent,
     "indent xml output.";
@@ -235,7 +235,7 @@ let main () =
   let files = match (List.rev !files) with [] -> ["" (* stdin *) ] | l -> l in
   let enc = encoding_of_str !enc in
   let indent = if !indent then Some 2 else None in
-  process !signals !tree enc !strip !eref !ns !xhtml !parse_only 
+  process !signals !tree enc !strip !eref !ns !xhtml !parse_only
     !outline indent !suffix files
 
 let () = main ()
@@ -247,7 +247,7 @@ let () = main ()
   Redistribution and use in source and binary forms, with or without
   modification, are permitted provided that the following conditions are
   met:
-        
+
   1. Redistributions of source code must retain the above copyright
      notice, this list of conditions and the following disclaimer.
 
@@ -272,4 +272,3 @@ let () = main ()
   (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
   OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
   ---------------------------------------------------------------------------*)
-
