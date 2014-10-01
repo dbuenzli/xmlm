@@ -11,6 +11,7 @@ ocaml-version: [>= "4.00.0"]
 depends: [ "ocamlfind" ]
 build: 
 [
-  ["./pkg/pkg-git" ]
-  ["./pkg/build" "true" ]
+  [ "ocaml" "pkg/git.ml" ]
+  [ "ocaml" "pkg/build.ml" "native=%{ocaml-native}%"
+                           "native-dynlink=%{ocaml-native-dynlink}%" ]
 ]
