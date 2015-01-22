@@ -65,7 +65,7 @@ type signal = [ `Dtd of dtd | `El_start of tag | `El_end | `Data of string ]
     to the language of the [doc] grammar :
     {[doc ::= `Dtd tree
 tree ::= `El_start child `El_end
-child ::= `Data | tree | epsilon ]}
+child ::= `Data | tree | tree child tree | epsilon ]}
     Input and output deal only with well-formed sequences or
     exceptions are raised.
 *)
