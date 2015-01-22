@@ -65,10 +65,13 @@ type signal = [ `Dtd of dtd | `El_start of tag | `El_end | `Data of string ]
     to the language of the [doc] grammar :
     {[doc ::= `Dtd tree
 tree ::= `El_start child `El_end
-child ::= `Data | tree | tree child tree | epsilon ]}
+child ::= `Data | tree | child tree | tree child tree | tree child | epsilon ]}
+    The choices for [child] expresses the fact that there will never be
+    two consecutive `Data signals in the children of an element.
+
     Input and output deal only with well-formed sequences or
-    exceptions are raised.
-*)
+    exceptions are raised. However on output consecutive [`Data]
+    signals are allowed. *)
 
 val ns_xml : string
 (** Namespace name {{:http://www.w3.org/XML/1998/namespace}value} bound to the
