@@ -226,7 +226,8 @@ type output
 (** The type for output abstractions. *)
 
 val make_output : ?decl:bool -> ?nl:bool -> ?indent:int option ->
-  ?ns_prefix:(string -> string option) -> dest -> output
+  ?ns_prefix:(string -> string option) ->
+  ?escape_cdata: (name -> bool) -> dest -> output
 (** Returns a new output abstraction writing to the given destination.
     {ul
     {- [decl], if [true] the {{:http://www.w3.org/TR/REC-xml/#NT-XMLDecl} XML
@@ -237,7 +238,10 @@ val make_output : ?decl:bool -> ?nl:bool -> ?indent:int option ->
     {- [indent], identation behaviour, see {{!outindent} details}. Defaults to
       [None].}
     {- [ns_prefix], undeclared namespace prefix bindings,
-       see {{!outns}details}. Default returns always [None].}} *)
+       see {{!outns}details}. Default returns always [None].}}
+    {- [escape_cdata], whether to escape CData nodes in the given element.
+       Default is true for any element.}
+    *)
 
 val output : output -> signal -> unit
 (** Outputs a signal.
@@ -413,7 +417,8 @@ module type S = sig
 
   type output
   val make_output : ?decl:bool -> ?nl:bool -> ?indent:int option ->
-    ?ns_prefix:(string -> string option) -> dest -> output
+    ?ns_prefix:(string -> string option) ->
+    ?escape_cdata: (name -> bool) -> dest -> output
 
   val output_depth : output -> int
   val output : output -> signal -> unit

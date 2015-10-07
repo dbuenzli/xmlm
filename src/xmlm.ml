@@ -91,7 +91,8 @@ module type S = sig
 
   type output
   val make_output : ?decl:bool -> ?nl:bool -> ?indent:int option ->
-    ?ns_prefix:(string -> string option) -> dest -> output
+    ?ns_prefix:(string -> string option) ->
+    ?escape_cdata: (name -> bool) -> dest -> output
 
   val output_depth : output -> int
   val output : output -> signal -> unit
@@ -950,7 +951,12 @@ struct
       mutable last_el_start : bool;     (* True if last signal was `El_start *)
       mutable scopes : (name * (string list)) list;
         (* Qualified el. name and bound uris. *)
-      mutable depth : int; }                                 (* Scope depth. *)
+      mutable depth : int; (* Scope depth. *)
+      mutable escape_cdata : name -> bool ;
+        (* escape delimiters or not in cdata of the given tag *)
+      escaping_cdata : bool Stack.t ;
+        (* currently escaping cdata nodes ? *)
+    }
 
   let err_prefix uri = "unbound namespace (" ^ uri ^ ")"
   let err_dtd = "dtd signal not allowed here"
@@ -959,7 +965,7 @@ struct
   let err_data = "data signal not allowed here"
 
   let make_output ?(decl = true) ?(nl = false) ?(indent = None)
-      ?(ns_prefix = fun _ ->None) d =
+      ?(ns_prefix = fun _ ->None) ?(escape_cdata=(fun _ -> true)) d =
     let outs, outc = match d with
     | `Channel c -> (output c), (output_char c)
     | `Buffer b -> (Std_buffer.add_substring b), (Std_buffer.add_char b)
@@ -977,9 +983,12 @@ struct
       Ht.add h ns_xmlns n_xmlns;
       h
     in
+    let escaping_cdata = Stack.create () in
+    Stack.push true escaping_cdata ;
     { decl = decl; outs = outs; outc = outc; nl = nl; indent = indent;
       last_el_start = false; prefixes = prefixes; scopes = []; depth = -1;
-      fun_prefix = ns_prefix; }
+      fun_prefix = ns_prefix;
+      escape_cdata; escaping_cdata; }
 
   let output_depth o = o.depth
   let outs o s = o.outs s 0 (Std_string.length s)
@@ -1006,7 +1015,7 @@ struct
     in
     List.fold_left add [] atts
 
-  let out_data o s =
+  let out_data o escaping_cdata s =
     let out () s =
       let len = Std_string.length s in
       let start = ref 0 in
@@ -1017,16 +1026,19 @@ struct
         incr last;
         start := !last
       in
-      while (!last < len) do match Std_string.get s !last with
-      | '<' -> escape "&lt;"         (* Escape markup delimiters. *)
-      | '>' -> escape "&gt;"
-      | '&' -> escape "&amp;"
-   (* | '\'' -> escape "&apos;" *) (* Not needed we use \x22 for attributes. *)
-      | '\x22' -> escape "&quot;"
-      | '\n' | '\t' | '\r' -> incr last
-      | c when c < ' ' -> escape "\xEF\xBF\xBD" (* illegal, subst. by U+FFFD *)
-      | _ -> incr last
-      done;
+      if escaping_cdata then
+        while (!last < len) do match Std_string.get s !last with
+          | '<' -> escape "&lt;"         (* Escape markup delimiters. *)
+          | '>' -> escape "&gt;"
+          | '&' -> escape "&amp;"
+              (* | '\'' -> escape "&apos;" *) (* Not needed we use \x22 for attributes. *)
+          | '\x22' -> escape "&quot;"
+          | '\n' | '\t' | '\r' -> incr last
+          | c when c < ' ' -> escape "\xEF\xBF\xBD" (* illegal, subst. by U+FFFD *)
+          | _ -> incr last
+        done
+      else
+        last := len;
       o.outs s !start (!last - !start)
     in
     String.to_utf_8 out () s
@@ -1037,7 +1049,7 @@ struct
 
   let out_attribute o (n, v) =
     o.outc ' '; out_qname o (prefix_name o n); outs o "=\x22";
-    out_data o v;
+    out_data o true v;
     o.outc '\x22'
 
   let output o s =
@@ -1069,7 +1081,8 @@ struct
         o.outc '<'; out_qname o qn; List.iter (out_attribute o) atts;
         o.scopes <- (qn, uris) :: o.scopes;
         o.depth <- o.depth + 1;
-        o.last_el_start <- true
+        o.last_el_start <- true;
+        Stack.push (o.escape_cdata n) o.escaping_cdata;
     | `El_end ->
         begin match o.scopes with
         | (n, uris) :: scopes' ->
@@ -1083,13 +1096,14 @@ struct
             List.iter (Ht.remove o.prefixes) uris;
             o.last_el_start <- false;
             if o.depth = 0 then (if o.nl then o.outc '\n'; o.depth <- -1;)
-            else unindent o
+            else unindent o;
+            ignore(Stack.pop o.escaping_cdata)
         | [] -> invalid_arg err_el_end
         end
     | `Data d ->
         if o.last_el_start then (outs o ">"; unindent o);
         indent o;
-        out_data o d;
+        out_data o (Stack.top o.escaping_cdata) d;
         unindent o;
         o.last_el_start <- false
     | `Dtd _ -> failwith err_dtd
