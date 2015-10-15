@@ -3,7 +3,7 @@
 #use "topkg.ml";;
 
 let () =
-  Pkg.describe "xmlm" ~builder:`OCamlbuild [
+  Pkg.describe "xmlm" ~builder:(`OCamlbuild []) [
     Pkg.lib "pkg/META";
     Pkg.lib ~exts:Exts.module_library "src/xmlm";
     Pkg.bin ~auto:true "test/xmltrip";
