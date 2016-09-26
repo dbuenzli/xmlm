@@ -44,7 +44,7 @@ let decoder_strip_atts () =
 
 let test () =
   Printexc.record_backtrace true;
-  decoder_attribute_strip ();
+  decoder_strip_atts ();
   log "All tests succeeded.\n"
 
 let () = if not (!Sys.interactive) then test ()
