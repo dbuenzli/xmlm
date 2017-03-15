@@ -16,5 +16,5 @@ depends: [
 build:
 [[
    "ocaml" "pkg/pkg.ml" "build"
-           "--dev-pkg" "%{pinned}%" "pkg/git.ml"
+           "--dev-pkg" "%{pinned}%"
 ]]
