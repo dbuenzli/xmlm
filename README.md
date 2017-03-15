@@ -7,7 +7,7 @@ can process XML documents without a complete in-memory representation of the
 data.
 
 Xmlm is made of a single independent module and distributed
-under the BSD3 license.
+under the ISC license.
 
 Home page: http://erratique.ch/software/xmlm  
 Contact: Daniel Bünzli `<daniel.buenzl i@erratique.ch>`
