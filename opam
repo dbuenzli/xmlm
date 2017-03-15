@@ -7,7 +7,7 @@ bug-reports: "https://github.com/dbuenzli/xmlm/issues"
 doc: "http://erratique.ch/software/xmlm/doc/Xmlm"
 tags: [ "xml" "codec" "org:erratique" ]
 license: "ISC"
-available: [ ocaml-version >= "4.01.0" ]
+available: [ ocaml-version >= "4.02.0" ]
 depends: [
   "ocamlfind" {build}
   "ocamlbuild" {build}
