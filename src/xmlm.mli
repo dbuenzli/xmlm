@@ -17,7 +17,7 @@
     Consult the {{!io}features and limitations} and {{!ex}examples}
     of use.
 
-    {e Release %%VERSION%% — %%MAINTAINER%% }
+    {e %%VERSION%% — {{:%%PKG_HOMEPAGE%% }homepage}}
 
     {3 References}
     {ul
