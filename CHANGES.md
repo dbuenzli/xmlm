@@ -1,3 +1,11 @@
+v1.3.0 2017-03-15 La Forclaz (VS)
+---------------------------------
+
+- Add `Xmlm.pp_{dtd,name,attribute,tag,signal}`
+- Safe-string support.
+- Build depend on topkg.
+- Relicense from BSD3 to ISC.
+
 v1.2.0 2013-09-06 Cambridge (UK) 
 --------------------------------
 
