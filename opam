@@ -7,11 +7,14 @@ bug-reports: "https://github.com/dbuenzli/xmlm/issues"
 doc: "http://erratique.ch/software/xmlm/doc/Xmlm"
 tags: [ "xml" "codec" "org:erratique" ]
 license: "BSD3"
-ocaml-version: [>= "4.00.0"]
-depends: [ "ocamlfind" ]
-build: 
-[
-  [ "ocaml" "pkg/git.ml" ]
-  [ "ocaml" "pkg/build.ml" "native=%{ocaml-native}%"
-                           "native-dynlink=%{ocaml-native-dynlink}%" ]
+available: [ ocaml-version >= "4.01.0" ]
+depends: [
+  "ocamlfind" {build}
+  "ocamlbuild" {build}
+  "topkg" {build & >= "0.9.0" }
 ]
+build:
+[[
+   "ocaml" "pkg/pkg.ml" "build"
+           "--dev-pkg" "%{pinned}%" "pkg/git.ml"
+]]
