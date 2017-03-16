@@ -1,4 +1,4 @@
-version = "%%VERSION%%"
+version = "%%VERSION_NUM%%"
 description = "Streaming XML codec for OCaml"
 requires = ""
 archive(byte) = "xmlm.cma"
