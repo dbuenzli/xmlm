@@ -215,6 +215,7 @@ struct
   let u_bom = 0xFEFF    (* BOM *)
   let u_9 = 0x0039      (* 9 *)
   let u_F = 0x0046      (* F *)
+  let u_d = 0X0064      (* d *)
   let u_D = 0X0044      (* D *)
 
   let s_cdata = str "CDATA["
@@ -617,7 +618,7 @@ struct
           begin
             nextc i;
             if i.c = u_minus then (nextc i; accept i u_minus; Comment) else
-            if i.c = u_D then Dtd else
+            if i.c = u_D || i.c = u_d then Dtd else
             if i.c = u_lbrack then
               begin
                 nextc i;
