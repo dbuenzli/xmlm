@@ -414,6 +414,7 @@ struct
   let skip_white i = while (is_white i.c) do nextc i done
   let skip_white_eof i = while (is_white i.c) do nextc_eof i done
   let accept i c = if i.c = c then nextc i else err_expected_chars i [ c ]
+  let maybe_accept i c = if i.c = c then (nextc i; true) else false
 
   let clear_ident i = Buffer.clear i.ident
   let clear_data i = Buffer.clear i.data
@@ -537,13 +538,19 @@ struct
     e "lt" "<"; e "gt" ">"; e "amp" "&"; e "apos" "'"; e "quot" "\"";
     h
 
-  let p_entity_ref i =                        (* {EntityRef}, '&' was eaten. *)
-    let ent = p_ncname i in
-    accept i u_scolon;
+  let find_entity i ent =
     try Ht.find predefined_entities ent with Not_found ->
       match i.fun_entity ent with
       | Some s -> s
       | None -> err i (`Unknown_entity_ref ent)
+
+  let p_entity_ref i =                        (* {EntityRef}, '&' was eaten. *)
+    if not (is_name_start_char i.c) then str "&" else
+    begin
+      let ent = p_ncname i in
+      if maybe_accept i u_scolon then find_entity i ent else
+      String.append (str "&") ent
+    end
 
   let p_reference i =                                         (* {Reference} *)
     nextc i; if i.c = u_sharp then p_charref i else p_entity_ref i
