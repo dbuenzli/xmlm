@@ -33,6 +33,7 @@ let att ?ns n v = name ?ns n, v
 let tag ?(atts = []) ?ns n = (name ?ns n), atts
 let el ?atts ?ns n content =
   (`El_start (tag ?atts ?ns n)) :: List.flatten content @ [`El_end]
+let data s = [`Data s]
 
 let decoder_strip_atts () =
   log "Decoder attribute stripping.\n";
@@ -42,9 +43,17 @@ let decoder_strip_atts () =
   test_attv "  bla bli\n\n blo " "bla bli blo";
   ()
 
+let decoder_bare_amp () =
+  log "Decoder allow bare '&'.\n";
+  test_seq (str "<p>A & B</p>") (el "p" [data "A & B"]);
+  test_seq (str "<p>A&B</p>") (el "p" [data "A&B"]);
+  test_seq (str "<p>A &amp; B</p>") (el "p" [data "A & B"]);
+  ()
+
 let test () =
   Printexc.record_backtrace true;
   decoder_strip_atts ();
+  decoder_bare_amp ();
   log "All tests succeeded.\n"
 
 let () = if not (!Sys.interactive) then test ()
