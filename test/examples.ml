@@ -31,10 +31,10 @@ let prune_docs prune_list ic oc =
     let rec skip i d = match Xmlm.input i with
     | `El_start _ -> skip i (d + 1)
     | `El_end -> if d = 1 then () else skip i (d - 1)
-    | s -> skip i d
+    | _ -> skip i d
     in
     match Xmlm.peek i with
-    | `El_start tag when prune tag -> skip i 0; process i o d
+    | `El_start ((_, tag), attrs) when prune (tag, attrs) -> skip i 0; process i o d
     | `El_start _ -> copy i o; process i o (d + 1)
     | `El_end -> copy i o; if d = 0 then () else process i o (d - 1)
     | `Data _ -> copy i o; process i o d
