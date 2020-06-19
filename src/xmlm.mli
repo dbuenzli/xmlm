@@ -1,5 +1,5 @@
 (*---------------------------------------------------------------------------
-   Copyright (c) 2007 Daniel C. Bünzli. All rights reserved.
+   Copyright (c) 2007 The xmlm programmers. All rights reserved.
    Distributed under the ISC license, see terms at the end of the file.
   ---------------------------------------------------------------------------*)
 
@@ -803,7 +803,7 @@ let out_w3c_bureaucrats dst bl =
 *)
 
 (*---------------------------------------------------------------------------
-   Copyright (c) 2007 Daniel C. Bünzli
+   Copyright (c) 2007 The xmlm programmers
 
    Permission to use, copy, modify, and/or distribute this software for any
    purpose with or without fee is hereby granted, provided that the above
