@@ -10,5 +10,6 @@ let () =
        Pkg.test "test/examples";
        Pkg.test "test/test";
        Pkg.test "test/xhtml";
+       Pkg.doc "doc/index.mld" ~dst:"odoc-pages/index.mld";
        Pkg.doc "test/examples.ml";
        Pkg.doc "test/xhtml.ml"; ]
