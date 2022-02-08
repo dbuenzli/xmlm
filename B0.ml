@@ -50,7 +50,7 @@ let default =
     |> add description_tags
       ["xml"; "codec"; "org:erratique"]
     |> add B0_opam.Meta.depends
-      [ "ocaml", {|>= "4.08.0"|};
+      [ "ocaml", {|>= "4.05.0"|};
         "ocamlfind", {|build|};
         "ocamlbuild", {|build|};
         "topkg", {|build & >= "1.0.3"|};
