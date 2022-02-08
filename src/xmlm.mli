@@ -16,7 +16,7 @@
     Consult the {{!io}features and limitations} and {{!ex}examples}
     of use.
 
-    {3 References}
+    {b References}
     {ul
     {- Tim Bray.
     {e {{:http://www.xml.com/axml/axml.html}The annotated XML Specification}},
@@ -25,7 +25,7 @@
     {e {{:http://www.w3.org/TR/xml-names11}Namespaces in XML 1.1 (2nd ed.)}},
     2006.}} *)
 
-(**  {1 Basic types and values} *)
+(**  {1:types Basic types and values} *)
 
 (** The type for character encodings. For [`UTF_16], endianness is
     determined from the
@@ -98,7 +98,7 @@ val pp_signal : Format.formatter -> signal -> unit
 (** [pp_signal ppf s] prints an unspecified representation of [s] on
     [ppf]. *)
 
-(** {1 Input} *)
+(** {1:api_input Input} *)
 
 type pos = int * int
 (** The type for input positions. Line and column number, both start
@@ -164,8 +164,8 @@ val input : input -> signal
     two consecutive [`Data] signals in the sequence and their string
     is always non empty.
 
-    {b Deprecated} After a well-formed sequence was input another may
-    be input, see {!eoi} and {{!iseq}details}.
+    This behaviour is {b deprecated}: after a well-formed sequence was
+    input another may be input, see {!eoi} and {{!iseq}details}.
 
     {b Raises} {!Error} on input errors. *)
 
@@ -197,7 +197,7 @@ val input_doc_tree : el:(tag -> 'a list -> 'a) -> data:(string -> 'a) ->
      if the next signal is not [`Dtd]. *)
 
 val peek : input -> signal
-(** Same as {!input} but doesn't remove the signal from the sequence.
+(** Same as {!val-input} but doesn't remove the signal from the sequence.
 
     {b Raises} {!Error} on input errors. *)
 
@@ -209,7 +209,7 @@ val eoi : input -> bool
 val pos : input -> pos
 (** Current position in the input abstraction. *)
 
-(** {1 Output} *)
+(** {1:api_output Output} *)
 
 type 'a frag = [ `El of tag * 'a list | `Data of string ]
 (** The type for deconstructing data structures of type ['a]. *)
@@ -240,8 +240,8 @@ val make_output : ?decl:bool -> ?nl:bool -> ?indent:int option ->
 val output : output -> signal -> unit
 (** Outputs a signal.
 
-    {b Deprecated.} After a well-formed sequence of signals was output
-    a new well-formed sequence can be output.
+    This behaviour is {b deprecated}: after a well-formed sequence of
+    signals was output a new well-formed sequence can be output.
 
     {b Raises} [Invalid_argument] if the resulting signal sequence on
     the output abstraction is not {{!signal}well-formed} or if a
@@ -255,13 +255,13 @@ val output_tree : ('a -> 'a frag) -> output -> 'a -> unit
 (** Outputs signals corresponding to a value by recursively
     applying the given value deconstructor.
 
-    {b Raises} see {!output}. *)
+    {b Raises} see {!val-output}. *)
 
 val output_doc_tree : ('a -> 'a frag) -> output -> (dtd * 'a) -> unit
 (** Same as {!output_tree} but outputs a complete {{!signal}well-formed}
     sequence of signals.
 
-    {b Raises} see {!output}. *)
+    {b Raises} see {!val-output}. *)
 
 (** {1:sto Functorial interface (deprecated)}
 
@@ -464,7 +464,9 @@ module Make (String : String) (Buffer : Buffer with type string = String.t) : S
     [false] all white space data is preserved as present in the
     document (however all kinds of
     {{:http://www.w3.org/TR/REC-xml/#sec-line-ends}line ends} are
-    translated to the newline character ([U+000A]).  {3:inns Namespaces}
+    translated to the newline character ([U+000A]).
+
+    {3:inns Namespaces}
 
     Xmlm's {{!name}names} are
     {{:http://www.w3.org/TR/xml-names11/#dt-expname}expanded names}.
@@ -509,7 +511,7 @@ module Make (String : String) (Buffer : Buffer with type string = String.t) : S
     specification, call {!eoi} after a well-formed sequence of
     signals, it must return [true]. If you expect another document on
     the same input abstraction a new well-formed sequence of signals
-    can be {!input}. Use {!eoi} to check if a document follows (this
+    can be {!val-input}. Use {!eoi} to check if a document follows (this
     may consume data).
 
     Invoking {!eoi} after a well-formed sequence of signals skips
@@ -579,7 +581,7 @@ let ex_ns = (Xmlm.ns_xmlns, "ex"), "http://example.org/ex"]}
     current output scope. Given a namespace name the function must return
     the prefix to use. Note that this
     will {b not} add any namespace declaration attribute to the
-    output.  If the function returns [None], {!output} will raise
+    output.  If the function returns [None], {!val-output} will raise
     [Invalid_argument].  The default function returns always [None].
     {3:outindent Indentation}
 
