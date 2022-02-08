@@ -1,7 +1,7 @@
-
+v1.4.0 2022-02-08 La Forclaz (VS)
+---------------------------------
 
 - OCaml 5.00 support. Thanks to Antonio Nuno Monteiro for the patch.
-
 
 v1.3.0 2017-03-15 La Forclaz (VS)
 ---------------------------------
