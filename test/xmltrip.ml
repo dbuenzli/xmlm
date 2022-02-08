@@ -167,7 +167,7 @@ let process signals tree enc strip eref ns xhtml parse_only outline indent
   in
   List.iter f files
 
-let encoding_of_str enc = match (String.lowercase enc) with
+let encoding_of_str enc = match (String.lowercase_ascii enc) with
 | "" -> None
 | "utf-8" | "utf8" | "utf_8" -> Some `UTF_8
 | "utf-16" | "utf16" | "utf_16" -> Some `UTF_16
