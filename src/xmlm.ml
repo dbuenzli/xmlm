@@ -180,15 +180,16 @@ let uchar_byte i = i ()
 let uchar_iso_8859_1 i = i ()
 
 let uchar_iso_8859_15 i =
+  (* https://www.iana.org/assignments/charset-reg/ISO-8859-15 *)
   match i () with
-  | 0x00A4 -> 0x20AC (* ¤ -> € *)
-  | 0x00A6 -> 0x0160 (* ¦ -> Š *)
-  | 0x00A8 -> 0x0161 (* ¨ -> š *)
-  | 0x00B4 -> 0x017D (* ´ -> Ž *)
-  | 0x00B8 -> 0x017E (* ¸ -> ž *)
-  | 0x00BC -> 0x0152 (* ¼ -> Œ *)
-  | 0x00BD -> 0x0153 (* ½ -> œ *)
-  | 0x00BE -> 0x0178 (* ¾ -> Ÿ *)
+  | 0x00A4 -> 0x20AC (* € *)
+  | 0x00A6 -> 0x0160 (* Š *)
+  | 0x00A8 -> 0x0161 (* š *)
+  | 0x00B4 -> 0x017D (* Ž *)
+  | 0x00B8 -> 0x017E (* ž *)
+  | 0x00BC -> 0x0152 (* Œ *)
+  | 0x00BD -> 0x0153 (* œ *)
+  | 0x00BE -> 0x0178 (* Ÿ *)
   | c -> c
 
 let uchar_ascii i = let b = i () in if b > 127 then raise Malformed else b
