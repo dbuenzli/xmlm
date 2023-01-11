@@ -35,7 +35,14 @@ end
 module type S = sig
   type string
   type encoding = [
-    | `UTF_8 | `UTF_16 | `UTF_16BE | `UTF_16LE | `ISO_8859_1 | `US_ASCII ]
+    | `UTF_8
+    | `UTF_16
+    | `UTF_16BE
+    | `UTF_16LE
+    | `ISO_8859_1
+    | `ISO_8859_15
+    | `US_ASCII ]
+
   type dtd = string option
   type name = string * string
   type attribute = name * string
@@ -171,6 +178,19 @@ let uchar_utf16be = uchar_utf16 int16_be
 let uchar_utf16le = uchar_utf16 int16_le
 let uchar_byte i = i ()
 let uchar_iso_8859_1 i = i ()
+
+let uchar_iso_8859_15 i =
+  match i () with
+  | 0x00A4 -> 0x20AC (* ¤ -> € *)
+  | 0x00A6 -> 0x0160 (* ¦ -> Š *)
+  | 0x00A8 -> 0x0161 (* ¨ -> š *)
+  | 0x00B4 -> 0x017D (* ´ -> Ž *)
+  | 0x00B8 -> 0x017E (* ¸ -> ž *)
+  | 0x00BC -> 0x0152 (* ¼ -> Œ *)
+  | 0x00BD -> 0x0153 (* ½ -> œ *)
+  | 0x00BE -> 0x0178 (* ¾ -> Ÿ *)
+  | c -> c
+
 let uchar_ascii i = let b = i () in if b > 127 then raise Malformed else b
 
 (* Functorized streaming XML IO *)
@@ -236,6 +256,7 @@ struct
   let v_utf_16be = str "utf-16be"
   let v_utf_16le = str "utf-16le"
   let v_iso_8859_1 = str "iso-8859-1"
+  let v_iso_8859_15 = str "iso-8859-15"
   let v_us_ascii = str "us-ascii"
   let v_ascii = str "ascii"
 
@@ -244,7 +265,14 @@ struct
   (* Basic types and values *)
 
   type encoding = [
-    | `UTF_8 | `UTF_16 | `UTF_16BE | `UTF_16LE | `ISO_8859_1 | `US_ASCII ]
+    | `UTF_8
+    | `UTF_16
+    | `UTF_16BE
+    | `UTF_16LE
+    | `ISO_8859_1
+    | `ISO_8859_15
+    | `US_ASCII ]
+
   type dtd = string option
   type name = string * string
   type attribute = name * string
@@ -465,6 +493,7 @@ struct
         begin match e with
         | `US_ASCII -> reset uchar_ascii i
         | `ISO_8859_1 -> reset uchar_iso_8859_1 i
+        | `ISO_8859_15 -> reset uchar_iso_8859_15 i
         | `UTF_8 ->                                  (* Skip BOM if present. *)
             reset uchar_utf8 i; if i.c = u_bom then (i.col <- 0; nextc i)
         | `UTF_16 ->                             (* Which UTF-16 ? look BOM. *)
@@ -712,6 +741,7 @@ struct
               if str_eq enc v_utf_16be then i.uchar <- uchar_utf16be else
               if str_eq enc v_utf_16le then i.uchar <- uchar_utf16le else
               if str_eq enc v_iso_8859_1 then i.uchar <- uchar_iso_8859_1 else
+              if str_eq enc v_iso_8859_15 then i.uchar <- uchar_iso_8859_15 else
               if str_eq enc v_us_ascii then i.uchar <- uchar_ascii else
               if str_eq enc v_ascii then i.uchar <- uchar_ascii else
               if str_eq enc v_utf_16 then
