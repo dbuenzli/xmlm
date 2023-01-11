@@ -39,6 +39,22 @@ let decoder_strip_atts () =
     test_seq (str "<e a ='%s'></e>" v) (el "e" ~atts:[att "a" pv] [])
   in
   test_attv "  bla bli\n\n blo " "bla bli blo";
+  let test_iso_8859_15 v pv =
+    test_seq ~enc:(Some `ISO_8859_15) (str "<e>%s</e>" v) (el "e" [[`Data pv]])
+  in
+  List.iter
+    (fun (v, pv) -> test_iso_8859_15 v pv)
+    [
+      ("\065", "\u{0041}"); (* A *)
+      ("\164", "\u{20AC}"); (* € *)
+      ("\166", "\u{0160}"); (* Š *)
+      ("\168", "\u{0161}"); (* š *)
+      ("\180", "\u{017D}"); (* Ž *)
+      ("\184", "\u{017E}"); (* ž *)
+      ("\188", "\u{0152}"); (* Œ *)
+      ("\189", "\u{0153}"); (* œ *)
+      ("\190", "\u{0178}"); (* Ÿ *)
+    ];
   ()
 
 let test () =

@@ -1,3 +1,9 @@
+
+
+- Add support for latin-9 (ISO-8859-15) encoded XML files. 
+  Thanks to Liu Yuxi for the patch.
+
+
 v1.4.0 2022-02-08 La Forclaz (VS)
 ---------------------------------
 
