@@ -561,9 +561,10 @@ struct
     else err i (`Illegal_char_ref (Buffer.contents i.ident))
 
   let predefined_entities =
-    let h = Ht.create 5 in
+    let h = Ht.create 6 in
     let e k v = Ht.add h (str k) (str v) in
-    e "lt" "<"; e "gt" ">"; e "amp" "&"; e "apos" "'"; e "quot" "\"";
+    e "lt" "<"; e "gt" ">"; e "amp" "&"; e "apos" "'"; e "quot" "\""; 
+    e "nbsp" "\u{00A0}";
     h
 
   let p_entity_ref i =                        (* {EntityRef}, '&' was eaten. *)
