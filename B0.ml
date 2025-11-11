@@ -18,7 +18,7 @@ let test_exe src ~doc =
   let srcs = Fpath.[`File src] in
   let meta = B0_meta.(empty |> tag test) in
   let requires = [ xmlm ] in
-  B0_ocaml.exe (Fpath.basename ~strip_exts:true src) ~srcs ~doc ~meta ~requires
+  B0_ocaml.exe (Fpath.basename ~drop_exts:true src) ~srcs ~doc ~meta ~requires
 
 let test = test_exe "test/test.ml" ~doc:"Test suite"
 let test_tree = test_exe "test/test_tree.ml" ~doc:"Test Xmlm.output_tree"
