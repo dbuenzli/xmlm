@@ -7,18 +7,19 @@ let xmlm = B0_ocaml.libname "xmlm"
 (* Libraries *)
 
 let xmlm_lib =
-  let srcs = Fpath.[`Dir (v "src")] in
+  let srcs = Filepath.[`Dir (v "src")] in
   let requires = [] in
   B0_ocaml.lib xmlm ~doc:"The xmlm library" ~srcs ~requires
 
 (* Tests *)
 
 let test_exe src ~doc =
-  let src = Fpath.v src in
-  let srcs = Fpath.[`File src] in
+  let src = Filepath.v src in
+  let srcs = Filepath.[`File src] in
   let meta = B0_meta.(empty |> tag test) in
   let requires = [ xmlm ] in
-  B0_ocaml.exe (Fpath.basename ~drop_exts:true src) ~srcs ~doc ~meta ~requires
+  B0_ocaml.exe
+    (Filepath.basename ~drop_exts:true src) ~srcs ~doc ~meta ~requires
 
 let test = test_exe "test/test.ml" ~doc:"Test suite"
 let test_tree = test_exe "test/test_tree.ml" ~doc:"Test Xmlm.output_tree"
@@ -26,7 +27,7 @@ let xhtml = test_exe "test/xhtml.ml" ~doc:"XHTML entities"
 
 let xmltrip =
   let doc = "Reads xml files and outputs them on stdout" in
-  let srcs = Fpath.[`File (v "test/xmltrip.ml");
+  let srcs = Filepath.[`File (v "test/xmltrip.ml");
                     `File (v "test/xhtml.ml") ]
   in
   let requires = [xmlm] in
